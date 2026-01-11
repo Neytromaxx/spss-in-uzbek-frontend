@@ -2,19 +2,10 @@
 import { useStore } from "vuex";
 
 const store = useStore();
-
-function add() {
-  store.state.editor.schema.push({
-    name: "var_" + Date.now(),
-    type: "numeric",
-  });
-}
 </script>
 
 <template>
-  <h3>Variables</h3>
-  <button @click="add">+ Add</button>
-
+  <h3>O'zgaruvchilar</h3>
   <div v-for="v in store.state.editor.schema" :key="v.name">
     <input v-model="v.name" />
     <select v-model="v.type">
@@ -22,6 +13,4 @@ function add() {
       <option value="categorical">Categorical</option>
     </select>
   </div>
-
-  <button @click="store.dispatch('editor/saveSchema')">Save</button>
 </template>

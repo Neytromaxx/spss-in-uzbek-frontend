@@ -2,15 +2,10 @@
 import { useStore } from "vuex";
 
 const store = useStore();
-
-function addRow() {
-  store.state.editor.rows.push({});
-}
 </script>
 
 <template>
-  <h3>Data</h3>
-  <button @click="addRow">+ Row</button>
+  <h3>Ma'lumot</h3>
 
   <table>
     <tr>
@@ -25,6 +20,4 @@ function addRow() {
       </td>
     </tr>
   </table>
-
-  <button @click="store.dispatch('editor/saveRows')">Save</button>
 </template>
