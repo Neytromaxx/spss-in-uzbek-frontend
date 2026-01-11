@@ -2,6 +2,7 @@
 import { onMounted } from "vue";
 import { useStore } from "vuex";
 import FilesPage from "./pages/FilesPage.vue";
+import EditorPage from "./pages/EditorPage.vue";
 
 const store = useStore();
 
@@ -14,7 +15,8 @@ onMounted(() => {
     <div v-if="store.state.auth.loading">
       Yuklanmoqda...
     </div>
-    <FilesPage v-else />
+    <FilesPage v-if="!store.state.editor.file" />
+  <EditorPage v-else />
   </div>
 </template>
 
