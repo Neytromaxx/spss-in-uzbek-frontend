@@ -5,7 +5,7 @@ const store = useStore();
 
 <template>
   <div>
-    <button @click="store.commit('editor/SET_FILE',null)">⬅ Back</button>
+    <button @click="store.commit('editor/SET_FILE',null)">⬅ Orqaga</button>
     <strong>{{ store.state.editor.file.title }}</strong>
   </div>
 </template>
