@@ -19,66 +19,72 @@ function addVariable() {
 </script>
 
 <template>
-  <TopBar />
-    <div class="tabs">
-        <div 
-            class="tab"
-            :class="{ active: store.state.editor.activeTab === 'variables' }"
-            @click="store.commit('editor/SET_TAB','variables')">
-            O'zgaruvchilar
+    <div class="editor">
+        <TopBar />
+        <div class="tabs">
+            <div 
+                class="tab"
+                :class="{ active: store.state.editor.activeTab === 'variables' }"
+                @click="store.commit('editor/SET_TAB','variables')">
+                O'zgaruvchilar
+            </div>
+            <div 
+                class="tab"
+                :class="{ active: store.state.editor.activeTab === 'data' }"
+                @click="store.commit('editor/SET_TAB','data')">
+                Ma'lumot
+            </div>
+            <div 
+                class="tab"
+                :class="{ active: store.state.editor.activeTab === 'results' }"
+                @click="store.dispatch('editor/analyze')">
+                Tahlil
+            </div>
         </div>
-        <div 
-            class="tab"
-            :class="{ active: store.state.editor.activeTab === 'data' }"
-            @click="store.commit('editor/SET_TAB','data')">
-            Ma'lumot
+
+        <div class="content">
+            <VariablesTab v-if="store.state.editor.activeTab==='variables'" />
+            <DataTab v-if="store.state.editor.activeTab==='data'" />
+            <ResultsTab v-if="store.state.editor.activeTab==='results'" />
         </div>
-        <div 
-            class="tab"
-            :class="{ active: store.state.editor.activeTab === 'results' }"
-            @click="store.dispatch('editor/analyze')">
-            Tahlil
+
+        <div class="action-bar">
+            <button
+              v-if="store.state.editor.activeTab === 'variables'"
+              @click="addVariable">
+              + O'zgaruvchi qo'shish
+            </button>
+
+            <button
+              v-if="store.state.editor.activeTab === 'variables'"
+              class="primary"
+              @click="store.dispatch('editor/saveSchema')">
+              O'zgaruvchini saqlash
+            </button>
+
+            <button
+              v-if="store.state.editor.activeTab === 'data'"
+              @click="addRow">
+              + Qator qo'shish
+            </button>
+
+            <button
+              v-if="store.state.editor.activeTab === 'data'"
+              class="primary"
+              @click="store.dispatch('editor/saveRows')">
+              Ma'lumotni saqlash
+            </button>
         </div>
     </div>
-
-    <VariablesTab v-if="store.state.editor.activeTab==='variables'" />
-    <DataTab v-if="store.state.editor.activeTab==='data'" />
-    <ResultsTab v-if="store.state.editor.activeTab==='results'" />
-
-    <div class="action-bar">
-    <button
-      v-if="store.state.editor.activeTab === 'variables'"
-      @click="addVariable"
-    >
-      + O'zgaruvchi qo'shish
-    </button>
-
-    <button
-      v-if="store.state.editor.activeTab === 'variables'"
-      class="primary"
-      @click="store.dispatch('editor/saveSchema')"
-    >
-      O'zgaruvchini saqlash
-    </button>
-
-    <button
-      v-if="store.state.editor.activeTab === 'data'"
-      @click="addRow"
-    >
-      + Qator qo'shish
-    </button>
-
-    <button
-      v-if="store.state.editor.activeTab === 'data'"
-      class="primary"
-      @click="store.dispatch('editor/saveRows')"
-    >
-      Ma'lumotni saqlash
-  </button>
-</div>
-
 </template>
 <style scoped>
+.editor {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f1115;
+}
+
 .tabs {
   display: flex;
   background: #020617;
@@ -101,6 +107,12 @@ function addVariable() {
   background: #020617;
 }
 
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
 .action-bar {
   position: sticky;
   bottom: 0;
@@ -111,5 +123,4 @@ function addVariable() {
   background: #020617;
   border-top: 1px solid #1f2937;
 }
-
 </style>
