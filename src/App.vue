@@ -1,30 +1,26 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { onMounted } from "vue";
+import { useStore } from "vuex";
+import FilesPage from "./pages/FilesPage.vue";
+
+const store = useStore();
+
+onMounted(() => {
+  store.dispatch("auth/login");
+});
 </script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+  <div class="wrapper">
+    <div v-if="store.state.auth.loading">
+      Yuklanmoqda...
     </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main>
+    <FilesPage v-else />
+  </div>
 </template>
 
 <style scoped>
 header {
   line-height: 1.5;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
 }
 
 @media (min-width: 1024px) {
@@ -34,11 +30,7 @@ header {
     padding-right: calc(var(--section-gap) / 2);
   }
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
+  .wrapper {
     display: flex;
     place-items: flex-start;
     flex-wrap: wrap;
