@@ -4,13 +4,12 @@ import { useStore } from "vuex";
 
 const store = useStore();
 
-const varInc = ref(0);
 /* ===============================
    ADD VARIABLE
 ================================ */
 function addVariable() {
   store.commit("editor/ADD_VARIABLE", {
-    name: "o'zg_" + varInc+1,
+    name: "o'zg_",
     type: "string",
     label: "New variable",
   });
