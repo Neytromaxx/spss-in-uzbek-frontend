@@ -6,62 +6,62 @@ export default {
     file: null,
     schema: [],
     rows: [],
-    activeTab: "variables",
     result: null,
+    saving: false,
+    saved: true,
   }),
-
   mutations: {
-    SET_FILE(state, file) {
-      state.file = file;
-    },
-    SET_SCHEMA(state, schema) {
-      state.schema = schema;
-    },
-    SET_ROWS(state, rows) {
-      state.rows = rows;
-    },
-    SET_TAB(state, tab) {
-      state.activeTab = tab;
-    },
-    SET_RESULT(state, result) {
-      state.result = result;
+    SET_FILE(state, file) { state.file = file; },
+    SET_SCHEMA(state, s) { state.schema = s; },
+    SET_ROWS(state, r) { state.rows = r; },
+    SET_RESULT(state, r) { state.result = r; },
+    SET_SAVING(state, v) { state.saving = v; },
+    SET_SAVED(state, v) { state.saved = v; },
+    RESET(state) {
+      state.file = null;
+      state.schema = [];
+      state.rows = [];
+      state.result = null;
+      state.saved = true;
     },
   },
-
   actions: {
-    async open({ commit }, fileId) {
-      const res = await api.get(`/files/${fileId}`);
+    async open({ commit }, id) {
+      const res = await api.get(`/files/${id}`);
       commit("SET_FILE", res.data.file);
       commit("SET_SCHEMA", res.data.schema.variables || []);
-      commit("SET_ROWS", res.data.rows || []);
+      commit("SET_ROWS", res.data.rows.map(r => r.values));
     },
 
-    async saveSchema({ state }) {
+    async saveSchema({ state, commit }) {
+      commit("SET_SAVING", true);
       await api.put(`/files/${state.file.id}/schema`, {
         variables: state.schema,
       });
+      commit("SET_SAVING", false);
+      commit("SET_SAVED", true);
     },
 
-    async saveRows({ state }) {
+    async saveRows({ state, commit }) {
+      commit("SET_SAVING", true);
       await api.put(`/files/${state.file.id}/rows:bulk`, {
         rows: state.rows.map((r, i) => ({
           rowIndex: i,
           values: r,
         })),
       });
+      commit("SET_SAVING", false);
+      commit("SET_SAVED", true);
     },
 
-    async analyze({ commit, state }) {
+    async analyze({ state, commit }) {
       const res = await api.post(`/analyze/files/${state.file.id}`, {
         type: "descriptive",
         params: {
-          columns: state.schema
-            .filter((v) => v.type === "numeric")
-            .map((v) => v.name),
+          columns: state.schema.map(v => v.name),
         },
       });
       commit("SET_RESULT", res.data.result);
-      commit("SET_TAB", "results");
     },
   },
 };
