@@ -4,19 +4,21 @@ import { useStore } from "vuex";
 
 const store = useStore();
 
+const varInc = ref(0);
 /* ===============================
    ADD VARIABLE
 ================================ */
-function addVariable(){
-  const nextIndex = store.state.editor.schema.length + 1;
-  store.state.editor.schema.push({
-    id: "v_" + Date.now() + "_" + nextIndex,
-    name: `o'zg_${nextIndex}`,
-    type: "numeric"
-  })
-
-  markUnsaved();
+function addVariable() {
+  store.commit("editor/ADD_VARIABLE", {
+    name: "o'zg_" + varInc+1,
+    type: "string",
+    label: "New variable",
+  });
 }
+
+defineExpose({
+  addVariable,
+});
 
 /* ===============================
    REMOVE VARIABLE
