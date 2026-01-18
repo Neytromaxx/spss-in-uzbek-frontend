@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from vue;
+import { ref } from "vue";
 import { useStore } from "vuex";
 
 import TopBar from "../components/TopBar.vue";
