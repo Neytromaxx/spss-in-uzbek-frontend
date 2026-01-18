@@ -9,6 +9,7 @@ import ResultsTab from "../components/ResultsTab.vue";
 
 const store = useStore();
 const dataTabRef = ref(null);
+const varsTabRef = ref(null);
 
 /* ===============================
    TAB SWITCH
@@ -60,8 +61,8 @@ function openTab(tab) {
 
     <!-- CONTENT -->
     <div class="content">
-      <VariablesTab v-if="store.state.editor.activeTab === 'variables'" />
-      <DataTab v-if="store.state.editor.activeTab === 'data'" />
+      <VariablesTab v-if="store.state.editor.activeTab === 'variables'" ref="varsTabRef" />
+      <DataTab v-if="store.state.editor.activeTab === 'data'" ref="dataTabRef" />
       <ResultsTab v-if="store.state.editor.activeTab === 'results'" />
     </div>
 
@@ -69,7 +70,7 @@ function openTab(tab) {
     <div class="action-bar">
       <!-- VARIABLES -->
       <template v-if="store.state.editor.activeTab === 'variables'">
-        <button @click="$refs.vars?.addVariable?.()">
+        <button @click="varsTabRef.addVariable()">
           + O‘zgaruvchi qo‘shish
         </button>
 
@@ -84,9 +85,6 @@ function openTab(tab) {
 
       <!-- DATA -->
       <template v-if="store.state.editor.activeTab === 'data'">
-        <DataTab
-          ref="dataTabRef"
-        />
 
         <button
           @click="dataTabRef?.addRow()"

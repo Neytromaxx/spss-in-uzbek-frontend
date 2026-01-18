@@ -34,6 +34,26 @@ export default {
     SET_TAB(state, tab) {
       state.activeTab = tab;
     },
+    ADD_ROW(state) {
+      const row = {};
+      state.schema.forEach(v => {
+        row[v.name] = "";
+      });
+  
+      state.rows.push(row);
+      state.saved = false;
+    },
+  
+    ADD_VARIABLE(state, variable) {
+      state.schema.push(variable);
+  
+      // mavjud qatorlarga yangi ustun qo‘shish
+      state.rows.forEach(row => {
+        row[variable.name] = "";
+      });
+  
+      state.saved = false;
+    },
   },
   actions: {
     async open({ commit }, id) {

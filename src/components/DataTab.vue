@@ -8,18 +8,12 @@ const store = useStore();
    ADD ROW
 ================================ */
 function addRow() {
-  const row = {};
-  store.state.editor.schema.forEach(v => {
-    row[v.name] = "";
-  });
-
-  store.state.editor.rows.push(row);
-  markUnsaved();
+  store.commit("editor/ADD_ROW");
 }
 
 defineExpose({
   addRow,
-})
+});
 
 /* ===============================
    REMOVE ROW
