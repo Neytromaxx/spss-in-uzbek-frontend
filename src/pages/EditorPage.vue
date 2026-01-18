@@ -16,9 +16,13 @@ const dataTabRef = ref(null);
 function openTab(tab) {
   store.commit("editor/SET_TAB", tab);
 
-  if (tab === "results" && !store.state.editor.result) {
-    store.dispatch("editor/analyze");
-  }
+  if (
+  tab === "results" &&
+  !store.state.editor.result &&
+  store.state.editor.schema.length
+) {
+  store.dispatch("editor/analyze");
+}
 }
 </script>
 

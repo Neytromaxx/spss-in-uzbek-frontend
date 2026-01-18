@@ -3,6 +3,7 @@ import api from "../api";
 export default {
   namespaced: true,
   state: () => ({
+    activeTab:"variable",
     file: null,
     schema: [],
     rows: [],
@@ -12,8 +13,14 @@ export default {
   }),
   mutations: {
     SET_FILE(state, file) { state.file = file; },
-    SET_SCHEMA(state, s) { state.schema = s; },
-    SET_ROWS(state, r) { state.rows = r; },
+    SET_SCHEMA(state, s) {
+      state.schema = s;
+      state.saved = false;
+    },
+    SET_ROWS(state, r) {
+      state.rows = r;
+      state.saved = false;
+    },
     SET_RESULT(state, r) { state.result = r; },
     SET_SAVING(state, v) { state.saving = v; },
     SET_SAVED(state, v) { state.saved = v; },
@@ -24,12 +31,18 @@ export default {
       state.result = null;
       state.saved = true;
     },
+    SET_TAB(state, tab) {
+      state.activeTab = tab;
+    },
   },
   actions: {
     async open({ commit }, id) {
       const res = await api.get(`/files/${id}`);
       commit("SET_FILE", res.data.file);
-      commit("SET_SCHEMA", res.data.schema.variables || []);
+      commit(
+        "SET_SCHEMA",
+        res.data.schema?.variables ?? []
+      );
       commit("SET_ROWS", res.data.rows.map(r => r.values));
     },
 
