@@ -1,82 +1,107 @@
 <script setup>
+import { ref } from vue;
 import { useStore } from "vuex";
+
+import TopBar from "../components/TopBar.vue";
 import VariablesTab from "../components/VariablesTab.vue";
 import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
-import TopBar from "../components/TopBar.vue";
 
 const store = useStore();
-function addRow() {
-  store.state.editor.rows.push({});
-}
-function addVariable() {
-  const index = store.state.editor.schema.length + 1;
-  store.state.editor.schema.push({
-    name: `var_${index}`,
-    type: "numeric",
-  });
+const dataTabRef = ref(null);
+
+/* ===============================
+   TAB SWITCH
+================================ */
+function openTab(tab) {
+  store.commit("editor/SET_TAB", tab);
+
+  if (tab === "results" && !store.state.editor.result) {
+    store.dispatch("editor/analyze");
+  }
 }
 </script>
 
 <template>
-    <div class="editor">
-        <TopBar />
-        <div class="tabs">
-            <div 
-                class="tab"
-                :class="{ active: store.state.editor.activeTab === 'variables' }"
-                @click="store.commit('editor/SET_TAB','variables')">
-                O'zgaruvchilar
-            </div>
-            <div 
-                class="tab"
-                :class="{ active: store.state.editor.activeTab === 'data' }"
-                @click="store.commit('editor/SET_TAB','data')">
-                Ma'lumot
-            </div>
-            <div 
-                class="tab"
-                :class="{ active: store.state.editor.activeTab === 'results' }"
-                @click="store.dispatch('editor/analyze')">
-                Tahlil
-            </div>
-        </div>
+  <div class="editor">
+    <!-- TOP -->
+    <TopBar />
 
-        <div class="content">
-            <VariablesTab v-if="store.state.editor.activeTab==='variables'" />
-            <DataTab v-if="store.state.editor.activeTab==='data'" />
-            <ResultsTab v-if="store.state.editor.activeTab==='results'" />
-        </div>
+    <!-- TABS -->
+    <div class="tabs">
+      <div
+        class="tab"
+        :class="{ active: store.state.editor.activeTab === 'variables' }"
+        @click="openTab('variables')"
+      >
+        O‘zgaruvchilar
+      </div>
 
-        <div class="action-bar">
-            <button
-              v-if="store.state.editor.activeTab === 'variables'"
-              @click="addVariable">
-              + O'zgaruvchi qo'shish
-            </button>
+      <div
+        class="tab"
+        :class="{ active: store.state.editor.activeTab === 'data' }"
+        @click="openTab('data')"
+      >
+        Ma’lumot
+      </div>
 
-            <button
-              v-if="store.state.editor.activeTab === 'variables'"
-              class="primary"
-              @click="store.dispatch('editor/saveSchema')">
-              O'zgaruvchini saqlash
-            </button>
-
-            <button
-              v-if="store.state.editor.activeTab === 'data'"
-              @click="addRow">
-              + Qator qo'shish
-            </button>
-
-            <button
-              v-if="store.state.editor.activeTab === 'data'"
-              class="primary"
-              @click="store.dispatch('editor/saveRows')">
-              Ma'lumotni saqlash
-            </button>
-        </div>
+      <div
+        class="tab"
+        :class="{ active: store.state.editor.activeTab === 'results' }"
+        @click="openTab('results')"
+      >
+        Tahlil
+      </div>
     </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <VariablesTab v-if="store.state.editor.activeTab === 'variables'" />
+      <DataTab v-if="store.state.editor.activeTab === 'data'" />
+      <ResultsTab v-if="store.state.editor.activeTab === 'results'" />
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+      <!-- VARIABLES -->
+      <template v-if="store.state.editor.activeTab === 'variables'">
+        <button @click="$refs.vars?.addVariable?.()">
+          + O‘zgaruvchi qo‘shish
+        </button>
+
+        <button
+          class="primary"
+          :disabled="store.state.editor.saving"
+          @click="store.dispatch('editor/saveSchema')"
+        >
+          Saqlash
+        </button>
+      </template>
+
+      <!-- DATA -->
+      <template v-if="store.state.editor.activeTab === 'data'">
+        <DataTab
+          ref="dataTabRef"
+        />
+
+        <button
+          @click="dataTabRef?.addRow()"
+        >
+          + Qator qo‘shish
+        </button>
+
+        <button
+          class="primary"
+          :disabled="store.state.editor.saving"
+          @click="store.dispatch('editor/saveRows')"
+        >
+          Saqlash
+        </button>
+      </template>
+    </div>
+  </div>
 </template>
+
 <style scoped>
 .editor {
   height: 100vh;
@@ -104,7 +129,6 @@ function addVariable() {
 .tab.active {
   color: #fff;
   border-bottom: 3px solid #2563eb;
-  background: #020617;
 }
 
 .content {

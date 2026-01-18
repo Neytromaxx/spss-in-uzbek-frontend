@@ -15,19 +15,38 @@ const router = createRouter({
   routes,
 });
 
+/* ===============================
+   GLOBAL GUARD
+================================ */
 router.beforeEach(async (to) => {
-  const isTelegram = !!window.Telegram?.WebApp;
-
-  if (!isTelegram && to.path !== "/gate") {
-    return "/gate";
-  }
-
-  if (to.path.startsWith("/files/")) {
-    const id = to.params.id;
-    if (!store.state.editor.file || store.state.editor.file.id !== id) {
-      await store.dispatch("editor/open", id);
+    const isTelegram = !!window.Telegram?.WebApp;
+  
+    // Telegram gate
+    if (!isTelegram && to.path !== "/gate") {
+      return "/gate";
     }
-  }
-});
+  
+    // Editor open
+    if (to.path.startsWith("/files/")) {
+      const id = to.params.id;
+  
+      if (
+        !store.state.editor.file ||
+        store.state.editor.file.id !== id
+      ) {
+        try {
+          await store.dispatch("editor/open", id);
+        } catch (e) {
+          return "/";
+        }
+      }
+    }
+  
+    // Agar editor yopilgan bo‘lsa, URL’ni tozalaymiz
+    if (to.path === "/" && store.state.editor.file) {
+      store.commit("editor/RESET");
+    }
+  });
+  
 
 export default router;

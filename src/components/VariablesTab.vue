@@ -1,30 +1,126 @@
 <script setup>
+import { watch, onBeforeUnmount } from "vue"
 import { useStore } from "vuex";
 
 const store = useStore();
+
+/* ===============================
+   ADD VARIABLE
+================================ */
+function addVariable(){
+  const nextIndex = store.state.editor.schema.length + 1;
+  store.state.editor.schema.push({
+    id: "v_" + Date.now() + "_" + nextIndex,
+    name: `o'zg_${nextIndex}`,
+    type: "numeric"
+  })
+
+  markUnsaved();
+}
+
+/* ===============================
+   REMOVE VARIABLE
+================================ */
+function removeVariable(id){
+  store.state.editor.schema = store.state.editor.schema.filter(v => v.id !== id);
+
+  markUnsaved();
+}
+
+/* ===============================
+   DIRTY / SAVED STATE
+================================ */
+function markUnsaved(){
+  store.commit("editor/SET_SAVED", false)
+}
+
+/* ===============================
+   AUTOSAVE (DEBOUNCE)
+================================ */
+let autosaveTimer = null
+
+watch(
+  ()=> store.state.editor.schema,
+  ()=> {
+    markUnsaved();
+
+    if(autosaveTimer) clearTimeout(autosaveTimer)
+
+    autosaveTimer = setTimeout( async ()=> {
+      try{
+        await store.dispatch('editor/saveSchema');
+      }catch (e) {
+        console.error("Autosave schema failed", e);
+      }
+    }, 1500)
+  },
+  {deep:true}
+)
+
+onBeforeUnmount(() => {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+});
 </script>
 
 <template>
-  <h3>O'zgaruvchilar</h3>
-  <div class="variable-list">
-    <div class="var-row" v-for="v in store.state.editor.schema" :key="v.name">
-    <input v-model="v.name" />
-    <select v-model="v.type">
-      <option value="numeric">Numeric</option>
-      <option value="categorical">Categorical</option>
-    </select>
-   </div>
+  <div class="variables-tab">
+    <h3>O‘zgaruvchilar ({{ store.state.editor.schema.length }})</h3>
+
+    <div v-if="store.state.editor.schema.length === 0" class="empty">
+      Avval o‘zgaruvchi qo‘shing
+    </div>
+
+    <div class="variables-list">
+      <div
+        class="variable-row"
+        v-for="v in store.state.editor.schema"
+        :key="v.id"
+      >
+        <input
+          v-model="v.name"
+          @input="markUnsaved"
+          placeholder="O‘zgaruvchi nomi"
+        />
+
+        <select v-model="v.type" @change="markUnsaved">
+          <option value="numeric">Raqamli</option>
+          <option value="categorical">Kategoriya</option>
+        </select>
+
+        <button class="danger" @click="removeVariable(v.id)">
+          ✕
+        </button>
+      </div>
+    </div>
   </div>
-  
 </template>
+
 <style scoped>
-.variable-list{
+.variables-tab {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.var-row{
+
+.variables-list {
   display: flex;
+  flex-direction: column;
   gap: 10px;
+}
+
+.variable-row {
+  display: grid;
+  grid-template-columns: 1fr 160px 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+.variable-row button {
+  padding: 8px;
+}
+
+.empty {
+  opacity: 0.6;
+  font-style: italic;
 }
 </style>
