@@ -31,13 +31,22 @@ export default {
       state.schema = {
         variables: schema.variables || [],
       };
+    
+      // 🔴 MUHIM
+      state.result = null;
+    
       state.saved = true;
     },
 
     SET_ROWS(state, rows) {
       state.rows = rows;
+    
+      // 🔴 MUHIM
+      state.result = null;
+    
       state.saved = false;
     },
+    
 
     SET_RESULT(state, result) {
       state.result = result;
