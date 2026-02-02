@@ -5,9 +5,7 @@ import { useStore } from "vuex";
 const store = useStore();
 
 const result = computed(() => store.state.editor.result);
-console.log("Result",result)
-console.log("Result.value",result.value)
-console.log("Result.colums",result.columns)
+console.log("store.state.editor.result", store.state.editor.result)
 </script>
 
 <template>
