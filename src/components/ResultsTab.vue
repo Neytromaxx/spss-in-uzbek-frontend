@@ -20,7 +20,7 @@ console.log("store.state.editor.result.colums", store.state.editor.result?.colum
 
     <div v-else class="results-list">
       <div
-        v-for="(col, name) in columns" :key="name"
+        v-for="(col, name) in columns"
         :key="name"
         class="result-block"
       >
