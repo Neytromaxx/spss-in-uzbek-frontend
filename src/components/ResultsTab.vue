@@ -7,7 +7,14 @@ const store = useStore();
 const columns = computed(
   () => store.state.editor.result?.columns
 );
-console.log("store.state.editor.result.columns", store.state.editor.result?.columns)
+watch(
+  () => store.state.editor.result,
+  v => {
+    console.log("RESULT UPDATED:", v?.columns);
+  },
+  { immediate: true }
+);
+
 </script>
 
 <template>

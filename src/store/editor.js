@@ -14,7 +14,10 @@ export default {
 
     rows: [],
 
-    result: null,
+    result: {
+      columns: {},
+      rows: []
+    },
 
     saving: false,
     saved: true,
