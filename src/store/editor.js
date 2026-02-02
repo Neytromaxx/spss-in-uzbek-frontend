@@ -26,8 +26,14 @@ export default {
     SET_FILE(state, file) {
       state.file = file;
     },
+    
+    SET_RESULT(state, result) {
+      console.log("Result called", result)
+      state.result = result;
+    },
 
     SET_SCHEMA(state, schema) {
+      console.log("SET_SCHEMA CALLED");
       state.schema = {
         variables: schema.variables || [],
       };
@@ -39,6 +45,7 @@ export default {
     },
 
     SET_ROWS(state, rows) {
+      console.log("SET_ROWS CALLED");
       state.rows = rows;
     
       // 🔴 MUHIM
@@ -47,10 +54,6 @@ export default {
       state.saved = false;
     },
     
-
-    SET_RESULT(state, result) {
-      state.result = result;
-    },
 
     SET_TAB(state, tab) {
       state.activeTab = tab;
