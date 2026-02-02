@@ -38,18 +38,12 @@ export default {
         variables: schema.variables || [],
       };
     
-      // 🔴 MUHIM
-      state.result = null;
-    
       state.saved = true;
     },
 
     SET_ROWS(state, rows) {
       console.log("SET_ROWS CALLED");
       state.rows = rows;
-    
-      // 🔴 MUHIM
-      state.result = null;
     
       state.saved = false;
     },
