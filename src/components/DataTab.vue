@@ -37,22 +37,25 @@ function updateCell(rowIndex, varName, value) {
 /* ===============================
    AUTOSAVE (ROWS)
 ================================ */
-let autosaveTimer = null;
+function scheduleSave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+
+  autosaveTimer = setTimeout(async () => {
+    try {
+      await store.dispatch("editor/saveRows");
+    } catch (e) {
+      console.error("Autosave schema failed", e);
+    }
+  }, 1500);
+}
 
 watch(
-  () => rows.value,
+  () => store.state.editor.schema.variables,
   () => {
+    if (store.state.editor.analyzing) return;
+
     store.commit("editor/SET_SAVED", false);
-
-    if (autosaveTimer) clearTimeout(autosaveTimer);
-
-    autosaveTimer = setTimeout(async () => {
-      try {
-        await store.dispatch("editor/saveRows");
-      } catch (e) {
-        console.error("Autosave rows failed", e);
-      }
-    }, 1500);
+    scheduleSave();
   },
   { deep: true }
 );

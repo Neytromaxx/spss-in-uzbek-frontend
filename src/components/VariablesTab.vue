@@ -63,22 +63,25 @@ function removeValue(index, valKey) {
 /* ===============================
    AUTOSAVE (DEBOUNCE)
 ================================ */
-let autosaveTimer = null;
+function scheduleSave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+
+  autosaveTimer = setTimeout(async () => {
+    try {
+      await store.dispatch("editor/saveSchema");
+    } catch (e) {
+      console.error("Autosave schema failed", e);
+    }
+  }, 1500);
+}
 
 watch(
-  () => variables.value,
+  () => store.state.editor.schema.variables,
   () => {
+    if (store.state.editor.analyzing) return;
+
     store.commit("editor/SET_SAVED", false);
-
-    if (autosaveTimer) clearTimeout(autosaveTimer);
-
-    autosaveTimer = setTimeout(async () => {
-      try {
-        await store.dispatch("editor/saveSchema");
-      } catch (e) {
-        console.error("Schema autosave failed", e);
-      }
-    }, 1500);
+    scheduleSave();
   },
   { deep: true }
 );
