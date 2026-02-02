@@ -7,7 +7,7 @@ const store = useStore();
 const columns = computed(
   () => store.state.editor.result?.columns
 );
-console.log("store.state.editor.result.colums", store.state.editor.result?.columns)
+console.log("store.state.editor.result.columns", store.state.editor.result?.columns)
 </script>
 
 <template>
