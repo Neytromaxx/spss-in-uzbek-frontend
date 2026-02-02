@@ -66,15 +66,22 @@ function removeValue(index, valKey) {
 let autosaveTimer = null;
 
 watch(
-  () => store.state.editor.schema.variables,
-  async () => {
-    if (store.state.editor.analyzing) return;
-    markUnsaved();
-    debounceSave();
+  () => variables.value,
+  () => {
+    store.commit("editor/SET_SAVED", false);
+
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+
+    autosaveTimer = setTimeout(async () => {
+      try {
+        await store.dispatch("editor/saveSchema");
+      } catch (e) {
+        console.error("Schema autosave failed", e);
+      }
+    }, 1500);
   },
   { deep: true }
 );
-
 
 onBeforeUnmount(() => {
   if (autosaveTimer) clearTimeout(autosaveTimer);
