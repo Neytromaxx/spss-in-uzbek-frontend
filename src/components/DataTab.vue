@@ -40,19 +40,11 @@ function updateCell(rowIndex, varName, value) {
 let autosaveTimer = null;
 
 watch(
-  () => rows.value,
-  () => {
-    store.commit("editor/SET_SAVED", false);
-
-    if (autosaveTimer) clearTimeout(autosaveTimer);
-
-    autosaveTimer = setTimeout(async () => {
-      try {
-        await store.dispatch("editor/saveRows");
-      } catch (e) {
-        console.error("Autosave rows failed", e);
-      }
-    }, 1500);
+  () => store.state.editor.rows,
+  async () => {
+    if (store.state.editor.analyzing) return;
+    markUnsaved();
+    debounceSave();
   },
   { deep: true }
 );

@@ -18,6 +18,7 @@ export default {
 
     saving: false,
     saved: true,
+    analyze: false,
   }),
 
   mutations: {
@@ -37,17 +38,14 @@ export default {
       state.schema = {
         variables: schema.variables || [],
       };
-    
       state.saved = true;
     },
 
     SET_ROWS(state, rows) {
       console.log("SET_ROWS CALLED");
       state.rows = rows;
-    
       state.saved = false;
     },
-    
 
     SET_TAB(state, tab) {
       state.activeTab = tab;
@@ -59,6 +57,10 @@ export default {
 
     SET_SAVED(state, value) {
       state.saved = value;
+    },
+
+    SET_ANALYZING(state, v) {
+      state.analyzing = v;
     },
 
     RESET(state) {
@@ -211,15 +213,16 @@ export default {
 
     async analyze({ state, commit }) {
       if (!state.file) return;
-
+    
+      commit("SET_ANALYZING", true);
+    
       const res = await api.post(
         `/analyze/files/${state.file.id}`,
-        {
-          saveToProfile: false,
-        }
+        { saveToProfile: false }
       );
-
+    
       commit("SET_RESULT", res.data.result);
-    },
+      commit("SET_ANALYZING", false);
+    }
   },
 };
