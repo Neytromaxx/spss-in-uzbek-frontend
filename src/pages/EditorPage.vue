@@ -83,7 +83,7 @@ function openTab(tab) {
       <!-- VARIABLES ACTIONS -->
       <template v-if="store.state.editor.activeTab === 'variables'">
         <button
-          @click="varsTabRef.value?.addVariable()"
+          @click="varsTabRef.addVariable()"
         >
           + O‘zgaruvchi qo‘shish
         </button>
@@ -100,7 +100,7 @@ function openTab(tab) {
       <!-- DATA ACTIONS -->
       <template v-if="store.state.editor.activeTab === 'data'">
         <button
-          @click="dataTabRef.value?.addRow()"
+          @click="dataTabRef.addRow()"
         >
           + Qator qo‘shish
         </button>
