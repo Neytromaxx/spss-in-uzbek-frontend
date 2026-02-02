@@ -4,21 +4,23 @@ import { useStore } from "vuex";
 
 const store = useStore();
 
-const result = computed(() => store.state.editor.result);
-console.log("store.state.editor.result", store.state.editor.result)
+const columns = computed(
+  () => store.state.editor.result?.columns
+);
+console.log("store.state.editor.result.colums", store.state.editor.result?.columns)
 </script>
 
 <template>
   <div class="results-tab">
     <h3>Tahlil natijalari</h3>
 
-    <div v-if="!result || !result.columns" class="empty">
+    <div v-if="!columns" class="empty">
       Avval tahlilni ishga tushiring
     </div>
 
     <div v-else class="results-list">
       <div
-        v-for="(col, name) in result.columns"
+        v-for="(col, name) in columns" :key="name"
         :key="name"
         class="result-block"
       >
