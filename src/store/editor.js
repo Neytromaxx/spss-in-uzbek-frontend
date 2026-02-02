@@ -2,98 +2,215 @@ import api from "../api";
 
 export default {
   namespaced: true,
+
   state: () => ({
-    activeTab:"variable",
+    activeTab: "variables",
+
     file: null,
-    schema: [],
+
+    schema: {
+      variables: [],
+    },
+
     rows: [],
+
     result: null,
+
     saving: false,
     saved: true,
   }),
+
   mutations: {
-    SET_FILE(state, file) { state.file = file; },
-    SET_SCHEMA(state, s) {
-      state.schema = s;
+    /* ===== CORE ===== */
+
+    SET_FILE(state, file) {
+      state.file = file;
+    },
+
+    SET_SCHEMA(state, schema) {
+      state.schema = schema;
       state.saved = false;
     },
-    SET_ROWS(state, r) {
-      state.rows = r;
+
+    SET_ROWS(state, rows) {
+      state.rows = rows;
       state.saved = false;
     },
-    SET_RESULT(state, r) { state.result = r; },
-    SET_SAVING(state, v) { state.saving = v; },
-    SET_SAVED(state, v) { state.saved = v; },
+
+    SET_RESULT(state, result) {
+      state.result = result;
+    },
+
+    SET_TAB(state, tab) {
+      state.activeTab = tab;
+    },
+
+    SET_SAVING(state, value) {
+      state.saving = value;
+    },
+
+    SET_SAVED(state, value) {
+      state.saved = value;
+    },
+
     RESET(state) {
       state.file = null;
-      state.schema = [];
+      state.schema = { variables: [] };
       state.rows = [];
       state.result = null;
       state.saved = true;
     },
-    SET_TAB(state, tab) {
-      state.activeTab = tab;
-    },
-    ADD_ROW(state) {
-      const row = {};
-      state.schema.forEach(v => {
-        row[v.name] = "";
-      });
-  
-      state.rows.push(row);
-      state.saved = false;
-    },
-  
+
+    /* ===== VARIABLES ===== */
+
     ADD_VARIABLE(state, variable) {
-      state.schema.push(variable);
-  
-      // mavjud qatorlarga yangi ustun qo‘shish
+      state.schema.variables.push({
+        ...variable,
+        label: variable.label || "",
+        measure: variable.measure || "scale",
+        values: variable.values || null,
+        _showValues: false,
+      });
+
+      // barcha qatorlarga yangi ustun qo‘shamiz
       state.rows.forEach(row => {
         row[variable.name] = "";
       });
-  
+
+      state.saved = false;
+    },
+
+    UPDATE_VARIABLE(state, { index, key, value }) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+
+      v[key] = value;
+      state.saved = false;
+    },
+
+    TOGGLE_VALUES_EDITOR(state, index) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+
+      v._showValues = !v._showValues;
+
+      if (!v.values) {
+        v.values = {};
+      }
+    },
+
+    ADD_VALUE_LABEL(state, index) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+
+      if (!v.values) v.values = {};
+
+      // avtomatik key: 1,2,3,...
+      let i = 1;
+      while (v.values[String(i)]) i++;
+
+      v.values[String(i)] = "";
+      state.saved = false;
+    },
+
+    UPDATE_VALUE_LABEL(state, { index, valKey, valLabel }) {
+      const v = state.schema.variables[index];
+      if (!v || !v.values) return;
+
+      v.values[valKey] = valLabel;
+      state.saved = false;
+    },
+
+    REMOVE_VALUE_LABEL(state, { index, valKey }) {
+      const v = state.schema.variables[index];
+      if (!v || !v.values) return;
+
+      delete v.values[valKey];
+      state.saved = false;
+    },
+
+    /* ===== ROWS ===== */
+
+    ADD_ROW(state) {
+      const row = {};
+      state.schema.variables.forEach(v => {
+        row[v.name] = "";
+      });
+
+      state.rows.push(row);
+      state.saved = false;
+    },
+    
+    REMOVE_ROW(state, index) {
+      state.rows.splice(index, 1);
       state.saved = false;
     },
   },
+
   actions: {
-    async open({ commit }, id) {
-      const res = await api.get(`/files/${id}`);
+    /* ===== LOAD FILE ===== */
+
+    async open({ commit }, fileId) {
+      const res = await api.get(`/files/${fileId}`);
+
       commit("SET_FILE", res.data.file);
+
+      commit("SET_SCHEMA", {
+        variables: res.data.schema?.variables ?? [],
+      });
+
       commit(
-        "SET_SCHEMA",
-        res.data.schema?.variables ?? []
+        "SET_ROWS",
+        res.data.rows.map(r => r.values)
       );
-      commit("SET_ROWS", res.data.rows.map(r => r.values));
     },
 
+    /* ===== SAVE ===== */
+
     async saveSchema({ state, commit }) {
+      if (!state.file) return;
+
       commit("SET_SAVING", true);
+
       await api.put(`/files/${state.file.id}/schema`, {
-        variables: state.schema,
+        variables: state.schema.variables.map(v => {
+          const { _showValues, ...clean } = v;
+          return clean;
+        }),
       });
+
       commit("SET_SAVING", false);
       commit("SET_SAVED", true);
     },
 
     async saveRows({ state, commit }) {
+      if (!state.file) return;
+
       commit("SET_SAVING", true);
+
       await api.put(`/files/${state.file.id}/rows:bulk`, {
         rows: state.rows.map((r, i) => ({
           rowIndex: i,
           values: r,
         })),
       });
+
       commit("SET_SAVING", false);
       commit("SET_SAVED", true);
     },
 
+    /* ===== ANALYZE ===== */
+
     async analyze({ state, commit }) {
-      const res = await api.post(`/analyze/files/${state.file.id}`, {
-        type: "descriptive",
-        params: {
-          columns: state.schema.map(v => v.name),
-        },
-      });
+      if (!state.file) return;
+
+      const res = await api.post(
+        `/analyze/files/${state.file.id}`,
+        {
+          saveToProfile: false,
+        }
+      );
+
       commit("SET_RESULT", res.data.result);
     },
   },

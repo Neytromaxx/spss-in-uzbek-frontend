@@ -1,44 +1,48 @@
 <script setup>
-import { watch, onBeforeUnmount } from "vue";
+import { computed, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 
 const store = useStore();
 
 /* ===============================
-   ADD ROW
+   STATE
+================================ */
+const variables = computed(() => store.state.editor.schema.variables);
+const rows = computed(() => store.state.editor.rows);
+
+/* ===============================
+   ADD ROW (EXPOSED)
 ================================ */
 function addRow() {
   store.commit("editor/ADD_ROW");
 }
 
-defineExpose({
-  addRow,
-});
+defineExpose({ addRow });
 
 /* ===============================
    REMOVE ROW
 ================================ */
 function removeRow(index) {
-  store.state.editor.rows.splice(index, 1);
-  markUnsaved();
+  store.commit("editor/REMOVE_ROW", index);
 }
 
 /* ===============================
-   DIRTY FLAG
+   UPDATE CELL
 ================================ */
-function markUnsaved() {
+function updateCell(rowIndex, varName, value) {
+  rows.value[rowIndex][varName] = value;
   store.commit("editor/SET_SAVED", false);
 }
 
 /* ===============================
-   AUTOSAVE (DEBOUNCE)
+   AUTOSAVE (ROWS)
 ================================ */
 let autosaveTimer = null;
 
 watch(
-  () => store.state.editor.rows,
+  () => rows.value,
   () => {
-    markUnsaved();
+    store.commit("editor/SET_SAVED", false);
 
     if (autosaveTimer) clearTimeout(autosaveTimer);
 
@@ -60,48 +64,62 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="data-tab">
-    <h3>Ma’lumotlar ({{ store.state.editor.rows.length }} qator)</h3>
+    <h3>Ma’lumotlar ({{ rows.length }} qator)</h3>
 
-    <div v-if="store.state.editor.schema.length === 0" class="empty">
+    <div v-if="variables.length === 0" class="empty">
       Avval o‘zgaruvchilarni yarating
     </div>
 
-    <div v-else-if="store.state.editor.rows.length === 0" class="empty">
+    <div v-else-if="rows.length === 0" class="empty">
       Ma’lumot yo‘q. Pastdan qator qo‘shing.
     </div>
 
-    <!-- TABLE WRAPPER -->
-    <div class="table-wrapper">
+    <div v-else class="table-wrapper">
       <table>
         <thead>
           <tr>
             <th>#</th>
-            <th v-for="v in store.state.editor.schema" :key="v.id">
-              {{ v.name }}
+            <th v-for="v in variables" :key="v.name">
+              {{ v.label || v.name }}
             </th>
             <th></th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="(row, rowIndex) in store.state.editor.rows" :key="rowIndex">
-            <td class="row-index">{{ rowIndex + 1 }}</td>
+          <tr v-for="(row, rIndex) in rows" :key="rIndex">
+            <td class="row-index">{{ rIndex + 1 }}</td>
 
-            <td
-              v-for="v in store.state.editor.schema"
-              :key="v.id"
-            >
+            <td v-for="v in variables" :key="v.name">
+              <!-- SCALE -->
               <input
-                v-model="row[v.name]"
-                @input="markUnsaved"
-                :type="v.type === 'numeric' ? 'number' : 'text'"
+                v-if="v.measure === 'scale'"
+                type="number"
+                :value="row[v.name]"
+                @input="updateCell(rIndex, v.name, $event.target.value)"
               />
+
+              <!-- NOMINAL / ORDINAL -->
+              <select
+                v-else
+                :value="row[v.name]"
+                @change="updateCell(rIndex, v.name, $event.target.value)"
+              >
+                <option value="">—</option>
+                <option
+                  v-for="(label, key) in v.values || {}"
+                  :key="key"
+                  :value="key"
+                >
+                  {{ label }}
+                </option>
+              </select>
             </td>
 
             <td>
               <button
                 class="danger small"
-                @click="removeRow(rowIndex)"
+                @click="removeRow(rIndex)"
               >
                 ✕
               </button>
@@ -118,17 +136,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  color: #e5e7eb;
 }
 
-/* scrollni faqat shu joyga qamash */
 .table-wrapper {
   overflow: auto;
   border: 1px solid #1f2937;
   border-radius: 8px;
-  max-height: 100%;
 }
 
-/* TABLE */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -158,11 +174,14 @@ th {
   width: 40px;
 }
 
-input {
+input, select {
   width: 100%;
+  background: #020617;
+  border: 1px solid #1f2937;
+  color: #e5e7eb;
+  padding: 4px;
 }
 
-/* BUTTONS */
 button.small {
   padding: 6px;
   font-size: 12px;

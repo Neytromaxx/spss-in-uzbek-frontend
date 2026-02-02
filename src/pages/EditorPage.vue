@@ -8,8 +8,9 @@ import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
 
 const store = useStore();
-const dataTabRef = ref(null);
+
 const varsTabRef = ref(null);
+const dataTabRef = ref(null);
 
 /* ===============================
    TAB SWITCH
@@ -18,18 +19,19 @@ function openTab(tab) {
   store.commit("editor/SET_TAB", tab);
 
   if (
-  tab === "results" &&
-  !store.state.editor.result &&
-  store.state.editor.schema.length
-) {
-  store.dispatch("editor/analyze");
-}
+    tab === "results" &&
+    !store.state.editor.result &&
+    store.state.editor.schema.variables.length > 0 &&
+    store.state.editor.rows.length > 0
+  ) {
+    store.dispatch("editor/analyze");
+  }
 }
 </script>
 
 <template>
   <div class="editor">
-    <!-- TOP -->
+    <!-- TOP BAR -->
     <TopBar />
 
     <!-- TABS -->
@@ -61,16 +63,28 @@ function openTab(tab) {
 
     <!-- CONTENT -->
     <div class="content">
-      <VariablesTab v-if="store.state.editor.activeTab === 'variables'" ref="varsTabRef" />
-      <DataTab v-if="store.state.editor.activeTab === 'data'" ref="dataTabRef" />
-      <ResultsTab v-if="store.state.editor.activeTab === 'results'" />
+      <VariablesTab
+        v-if="store.state.editor.activeTab === 'variables'"
+        ref="varsTabRef"
+      />
+
+      <DataTab
+        v-if="store.state.editor.activeTab === 'data'"
+        ref="dataTabRef"
+      />
+
+      <ResultsTab
+        v-if="store.state.editor.activeTab === 'results'"
+      />
     </div>
 
     <!-- ACTION BAR -->
     <div class="action-bar">
-      <!-- VARIABLES -->
+      <!-- VARIABLES ACTIONS -->
       <template v-if="store.state.editor.activeTab === 'variables'">
-        <button @click="varsTabRef.addVariable()">
+        <button
+          @click="varsTabRef.value?.addVariable()"
+        >
           + O‘zgaruvchi qo‘shish
         </button>
 
@@ -83,11 +97,10 @@ function openTab(tab) {
         </button>
       </template>
 
-      <!-- DATA -->
+      <!-- DATA ACTIONS -->
       <template v-if="store.state.editor.activeTab === 'data'">
-
         <button
-          @click="dataTabRef?.addRow()"
+          @click="dataTabRef.value?.addRow()"
         >
           + Qator qo‘shish
         </button>
