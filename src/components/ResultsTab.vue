@@ -5,14 +5,16 @@ import { useStore } from "vuex";
 const store = useStore();
 
 const result = computed(() => store.state.editor.result);
-console.log(result)
+console.log("Result",result)
+console.log("Result.value",result.value)
+console.log("Result.colums",result.columns)
 </script>
 
 <template>
   <div class="results-tab">
     <h3>Tahlil natijalari</h3>
 
-    <div v-if="!result" class="empty">
+    <div v-if="!result || !result.columns" class="empty">
       Avval tahlilni ishga tushiring
     </div>
 
