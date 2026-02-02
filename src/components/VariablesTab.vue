@@ -63,6 +63,8 @@ function removeValue(index, valKey) {
 /* ===============================
    AUTOSAVE (DEBOUNCE)
 ================================ */
+let autosaveTimer = null;
+
 function scheduleSave() {
   if (autosaveTimer) clearTimeout(autosaveTimer);
 

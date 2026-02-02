@@ -37,6 +37,8 @@ function updateCell(rowIndex, varName, value) {
 /* ===============================
    AUTOSAVE (ROWS)
 ================================ */
+let autosaveTimer = null;
+
 function scheduleSave() {
   if (autosaveTimer) clearTimeout(autosaveTimer);
 
