@@ -28,8 +28,10 @@ export default {
     },
 
     SET_SCHEMA(state, schema) {
-      state.schema = schema;
-      state.saved = false;
+      state.schema = {
+        variables: schema.variables || [],
+      };
+      state.saved = true;
     },
 
     SET_ROWS(state, rows) {
@@ -140,7 +142,7 @@ export default {
       state.rows.push(row);
       state.saved = false;
     },
-    
+
     REMOVE_ROW(state, index) {
       state.rows.splice(index, 1);
       state.saved = false;
