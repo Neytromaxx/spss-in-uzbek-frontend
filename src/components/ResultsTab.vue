@@ -4,9 +4,14 @@ import { useStore } from "vuex";
 
 const store = useStore();
 
-const columns = computed(
-  () => store.state.editor.result?.columns
+const columns = computed(() =>
+  store.state.editor.result?.columns ?? {}
 );
+
+const hasResults = computed(
+  () => Object.keys(columns.value).length > 0
+);
+
 watch(
   () => store.state.editor.result,
   v => {
@@ -21,11 +26,11 @@ watch(
   <div class="results-tab">
     <h3>Tahlil natijalari</h3>
 
-    <div v-if="!columns" class="empty">
+    <div v-if="!hasResults" class="empty">
       Avval tahlilni ishga tushiring
     </div>
 
-    <div v-else class="results-list">
+    <div v-if="hasResults" class="results-list">
       <div
         v-for="(col, name) in columns"
         :key="name"
