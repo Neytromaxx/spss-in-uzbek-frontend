@@ -20,13 +20,14 @@ function openTab(tab) {
 
   if (
     tab === "results" &&
-    !store.state.editor.result &&
+    Object.keys(store.state.editor.result.columns).length === 0 &&
     store.state.editor.schema.variables.length > 0 &&
     store.state.editor.rows.length > 0
   ) {
     store.dispatch("editor/analyze");
   }
 }
+
 </script>
 
 <template>
