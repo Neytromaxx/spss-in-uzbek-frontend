@@ -30,8 +30,11 @@ function removeRow(index) {
    UPDATE CELL
 ================================ */
 function updateCell(rowIndex, varName, value) {
-  rows.value[rowIndex][varName] = value;
-  store.commit("editor/SET_SAVED", false);
+  store.commit("editor/UPDATE_CELL", {
+    rowIndex,
+    varName,
+    value,
+  });
 }
 
 /* ===============================
@@ -52,10 +55,9 @@ function scheduleSave() {
 }
 
 watch(
-  () => store.state.editor.schema.variables,
+  () => store.state.editor.rows,
   () => {
     if (store.state.editor.analyzing) return;
-
     store.commit("editor/SET_SAVED", false);
     scheduleSave();
   },
