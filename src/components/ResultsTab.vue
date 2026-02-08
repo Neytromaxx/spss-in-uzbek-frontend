@@ -12,6 +12,13 @@ const hasResults = computed(
   () => Object.keys(columns.value).length > 0
 );
 
+function fmt(value, digits = 3) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "—";
+  }
+  return Number(value).toFixed(digits);
+}
+
 watch(
   () => store.state.editor.result,
   v => {
@@ -50,14 +57,14 @@ watch(
             <tr><td>N</td><td>{{ col.descriptive.n }}</td></tr>
             <tr><td>Min</td><td>{{ col.descriptive.min }}</td></tr>
             <tr><td>Max</td><td>{{ col.descriptive.max }}</td></tr>
-            <tr><td>O‘rtacha</td><td>{{ col.descriptive.mean.toFixed(3) }}</td></tr>
+            <tr><td>O‘rtacha</td><td>{{ fmt(col.descriptive.mean) }}</td></tr>
             <tr><td>Median</td><td>{{ col.descriptive.median }}</td></tr>
-            <tr><td>SD</td><td>{{ col.descriptive.sd.toFixed(3) }}</td></tr>
+            <tr><td>SD</td><td>{{ fmt(col.descriptive.sd) }}</td></tr>
             <tr><td>Q1</td><td>{{ col.descriptive.q1 }}</td></tr>
             <tr><td>Q2</td><td>{{ col.descriptive.q2 }}</td></tr>
             <tr><td>Q3</td><td>{{ col.descriptive.q3 }}</td></tr>
-            <tr><td>Skewness</td><td>{{ col.descriptive.skewness.toFixed(3) }}</td></tr>
-            <tr><td>Kurtosis</td><td>{{ col.descriptive.kurtosis_excess.toFixed(3) }}</td></tr>
+            <tr><td>Skewness</td><td>{{ fmt(col.descriptive.skewness) }}</td></tr>
+            <tr><td>Kurtosis</td><td>{{ fmt(col.descriptive.kurtosis_excess) }}</td></tr>
           </tbody>
         </table>
 
@@ -80,7 +87,7 @@ watch(
             >
               <td>{{ row.label || row.value }}</td>
               <td>{{ row.count }}</td>
-              <td>{{ row.percent.toFixed(1) }}</td>
+              <td>{{ fmt(row.percent) }}</td>
             </tr>
           </tbody>
         </table>
