@@ -15,7 +15,7 @@ const dataTabRef = ref(null);
 /* ===============================
    TAB SWITCH
 ================================ */
-function openTab(tab) {
+async function openTab(tab) {
   store.commit("editor/SET_TAB", tab);
 
   if (
@@ -24,7 +24,10 @@ function openTab(tab) {
     store.state.editor.schema.variables.length > 0 &&
     store.state.editor.rows.length > 0
   ) {
-    store.dispatch("editor/analyze");
+    // 🔥 MAJBURIY SAQLASH
+    await store.dispatch("editor/saveRows");
+
+    await store.dispatch("editor/analyze");
   }
 }
 
