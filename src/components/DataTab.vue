@@ -7,8 +7,8 @@ const store = useStore();
 /* ===============================
    STATE
 ================================ */
-const variables = computed(() => store.state.editor.schema.variables);
-const rows = computed(() => store.state.editor.rows);
+const variables = computed(() => store.state.editorCore.schema.variables);
+const rows = computed(() => store.state.editorData.rows);
 
 /* ===============================
    ADD ROW (EXPOSED)
