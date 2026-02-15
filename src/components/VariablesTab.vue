@@ -7,7 +7,7 @@ const store = useStore();
 /* ===============================
    STATE
 ================================ */
-const variables = computed(() => store.state.editor.schema.variables);
+const variables = computed(() => store.state.editorCore.schema.variables);
 
 /* ===============================
    ADD VARIABLE (EXPOSED)

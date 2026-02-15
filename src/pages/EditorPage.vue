@@ -1,48 +1,44 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useStore } from "vuex";
 
 import TopBar from "../components/TopBar.vue";
 import VariablesTab from "../components/VariablesTab.vue";
 import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
+import AnalyzeDialog from "../components/analysis/AnalyzeDialog.vue"
 
 const store = useStore();
+const dialogRef = ref(null)
 
-const varsTabRef = ref(null);
-const dataTabRef = ref(null);
+function openAnalyze(){
+  dialogRef.value?.open()
+}
+
+/* ===============================
+   STATE ACCESS
+================================ */
+
+const activeTab = computed(() => store.state.editor.activeTab);
 
 /* ===============================
    TAB SWITCH
 ================================ */
-async function openTab(tab) {
+
+function openTab(tab) {
   store.commit("editor/SET_TAB", tab);
-
-  if (
-    tab === "results" &&
-    Object.keys(store.state.editor.result.columns).length === 0 &&
-    store.state.editor.schema.variables.length > 0 &&
-    store.state.editor.rows.length > 0
-  ) {
-    // 🔥 MAJBURIY SAQLASH
-    await store.dispatch("editor/saveRows");
-
-    await store.dispatch("editor/analyze");
-  }
 }
-
 </script>
 
 <template>
   <div class="editor">
-    <!-- TOP BAR -->
     <TopBar />
 
     <!-- TABS -->
     <div class="tabs">
       <div
         class="tab"
-        :class="{ active: store.state.editor.activeTab === 'variables' }"
+        :class="{ active: activeTab === 'variables' }"
         @click="openTab('variables')"
       >
         O‘zgaruvchilar
@@ -50,7 +46,7 @@ async function openTab(tab) {
 
       <div
         class="tab"
-        :class="{ active: store.state.editor.activeTab === 'data' }"
+        :class="{ active: activeTab === 'data' }"
         @click="openTab('data')"
       >
         Ma’lumot
@@ -58,7 +54,7 @@ async function openTab(tab) {
 
       <div
         class="tab"
-        :class="{ active: store.state.editor.activeTab === 'results' }"
+        :class="{ active: activeTab === 'results' }"
         @click="openTab('results')"
       >
         Tahlil
@@ -67,29 +63,21 @@ async function openTab(tab) {
 
     <!-- CONTENT -->
     <div class="content">
-      <VariablesTab
-        v-if="store.state.editor.activeTab === 'variables'"
-        ref="varsTabRef"
-      />
-
-      <DataTab
-        v-if="store.state.editor.activeTab === 'data'"
-        ref="dataTabRef"
-      />
-
-      <ResultsTab
-        v-if="store.state.editor.activeTab === 'results'"
-      />
+      <VariablesTab v-if="activeTab === 'variables'" />
+      <DataTab v-if="activeTab === 'data'" />
+      <ResultsTab v-if="activeTab === 'results'"
+        @openAnalyze="openAnalyze" />
+      <AnalyzeDialog ref="dialogRef" />
     </div>
 
     <!-- ACTION BAR -->
     <div class="action-bar">
-      <!-- VARIABLES ACTIONS -->
-      <template v-if="store.state.editor.activeTab === 'variables'">
+      <!-- VARIABLES -->
+      <template v-if="activeTab === 'variables'">
         <button
-          @click="varsTabRef.addVariable()"
+          @click="store.commit('editor/SET_SAVED', false)"
         >
-          + O‘zgaruvchi qo‘shish
+          O‘zgaruvchini saqlash kerak
         </button>
 
         <button
@@ -101,18 +89,20 @@ async function openTab(tab) {
         </button>
       </template>
 
-      <!-- DATA ACTIONS -->
-      <template v-if="store.state.editor.activeTab === 'data'">
+      <!-- DATA -->
+      <template v-if="activeTab === 'data'">
         <button
-          @click="dataTabRef.addRow()"
+          @click="store.commit(
+            'editorData/ADD_ROW',
+            store.state.editor.schema.variables
+          )"
         >
           + Qator qo‘shish
         </button>
 
         <button
           class="primary"
-          :disabled="store.state.editor.saving"
-          @click="store.dispatch('editor/saveRows')"
+          @click="store.dispatch('editorData/saveRows')"
         >
           Saqlash
         </button>
