@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { useStore } from "vuex";
+import { useRoute } from "vue-router";
 
 import TopBar from "../components/TopBar.vue";
 import VariablesTab from "../components/VariablesTab.vue";
@@ -9,28 +10,42 @@ import ResultsTab from "../components/ResultsTab.vue";
 import AnalyzeDialog from "../components/analysis/AnalyzeDialog.vue";
 
 const store = useStore();
-const dialogRef = ref(null)
+const route = useRoute();
+const dialogRef = ref(null);
 
 function openAnalyze(){
   dialogRef.value?.open()
 }
 
-/* ===============================
-   STATE ACCESS
-================================ */
-
 const activeTab = computed(() =>
   store.state.editor.core.activeTab
 );
 
-
-/* ===============================
-   TAB SWITCH
-================================ */
-
 function openTab(tab) {
   store.commit("editor/core/SET_TAB", tab);
 }
+
+/* ===============================
+   LOAD FILE FROM ROUTE
+================================ */
+
+async function loadFile(id){
+  if(!id) return;
+
+  store.commit("editor/core/RESET");
+  await store.dispatch("editor/core/open", id);
+}
+
+onMounted(() => {
+  loadFile(route.params.id);
+});
+
+watch(
+  () => route.params.id,
+  (newId) => {
+    loadFile(newId);
+  }
+);
 </script>
 
 <template>
