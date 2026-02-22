@@ -31,11 +31,11 @@ router.beforeEach(async (to) => {
       const id = to.params.id;
   
       if (
-        !store.state.editor.file ||
-        store.state.editor.file.id !== id
+        !store.state.editor.core.file ||
+        store.state.editor.core.file.id !== id
       ) {
         try {
-          await store.dispatch("editor/open", id);
+          await store.dispatch("editor/core/open", id);
         } catch (e) {
           return "/";
         }
