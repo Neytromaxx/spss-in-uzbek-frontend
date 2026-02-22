@@ -6,14 +6,17 @@ const props = defineProps({
 });
 
 function fmt(value, digits = 3) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "—";
-  }
+  if (
+    value === null ||
+    value === undefined ||
+    Number.isNaN(value)
+  ) return "—";
+
   return Number(value).toFixed(digits);
 }
 
-const type = computed(() => props.result.type);
-const data = computed(() => props.result.data);
+const type = computed(() => props.result?.analysis);
+const data = computed(() => props.result?.data || {});
 </script>
 
 <template>
@@ -55,31 +58,25 @@ const data = computed(() => props.result.data);
     <!-- ========================= -->
     <!-- CORRELATION -->
     <!-- ========================= -->
-    <div v-else-if="type === 'correlation'">
+    <div v-else-if="type === 'correlation' && data.variables">
       <table class="result-table">
         <thead>
           <tr>
             <th></th>
-            <th
-              v-for="(row, name) in data.matrix"
-              :key="name"
-            >
-              {{ name }}
+            <th v-for="v in data.variables" :key="v">
+              {{ v }}
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(row, name) in data.matrix"
-            :key="name"
-          >
-            <th>{{ name }}</th>
+          <tr v-for="rowVar in data.variables" :key="rowVar">
+            <th>{{ rowVar }}</th>
             <td
-              v-for="(cell, colName) in row"
-              :key="colName"
+              v-for="colVar in data.variables"
+              :key="colVar"
             >
-              {{ fmt(cell.r) }}
-              <span v-if="cell.p < 0.05">*</span>
+              {{ fmt(data.matrix[rowVar][colVar].r) }}
+              <span v-if="data.matrix[rowVar][colVar].p < 0.05">*</span>
             </td>
           </tr>
         </tbody>
@@ -89,17 +86,17 @@ const data = computed(() => props.result.data);
     <!-- ========================= -->
     <!-- T-TEST -->
     <!-- ========================= -->
-    <div v-else-if="type === 'ttest_ind'">
+    <div v-else-if="type === 'ttest_ind' && data">
       <table class="result-table">
         <tbody>
-          <tr><td>n1</td><td>{{ data.result.n1 }}</td></tr>
-          <tr><td>n2</td><td>{{ data.result.n2 }}</td></tr>
-          <tr><td>Mean1</td><td>{{ fmt(data.result.mean1) }}</td></tr>
-          <tr><td>Mean2</td><td>{{ fmt(data.result.mean2) }}</td></tr>
-          <tr><td>t</td><td>{{ fmt(data.result.t) }}</td></tr>
-          <tr><td>df</td><td>{{ data.result.df }}</td></tr>
-          <tr><td>p</td><td>{{ fmt(data.result.p, 4) }}</td></tr>
-          <tr><td>Cohen's d</td><td>{{ fmt(data.result.cohens_d) }}</td></tr>
+          <tr><td>Group 1</td><td>{{ data.group1 }}</td></tr>
+          <tr><td>Group 2</td><td>{{ data.group2 }}</td></tr>
+          <tr><td>n1</td><td>{{ data.n1 }}</td></tr>
+          <tr><td>n2</td><td>{{ data.n2 }}</td></tr>
+          <tr><td>Mean1</td><td>{{ fmt(data.mean1) }}</td></tr>
+          <tr><td>Mean2</td><td>{{ fmt(data.mean2) }}</td></tr>
+          <tr><td>t</td><td>{{ fmt(data.t) }}</td></tr>
+          <tr><td>p</td><td>{{ fmt(data.p, 4) }}</td></tr>
         </tbody>
       </table>
     </div>

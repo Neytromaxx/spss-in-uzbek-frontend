@@ -7,14 +7,18 @@ const store = useStore();
 /* ===============================
    STATE
 ================================ */
-const variables = computed(() => store.state.editorCore.schema.variables);
-const rows = computed(() => store.state.editorData.rows);
+const variables = computed(() =>
+  store.state.editor.schema.variables
+);
+const rows = computed(() => store.state.editor.data.rows);
 
 /* ===============================
    ADD ROW (EXPOSED)
 ================================ */
 function addRow() {
-  store.commit("editor/ADD_ROW");
+  store.commit("editor/data/ADD_ROW",
+  store.state.editor.schema.variables
+);
 }
 
 defineExpose({ addRow });
@@ -23,14 +27,14 @@ defineExpose({ addRow });
    REMOVE ROW
 ================================ */
 function removeRow(index) {
-  store.commit("editor/REMOVE_ROW", index);
+  store.commit("editor/data/REMOVE_ROW", index);
 }
 
 /* ===============================
    UPDATE CELL
 ================================ */
 function updateCell(rowIndex, varName, value) {
-  store.commit("editor/UPDATE_CELL", {
+  store.commit("editor/data/UPDATE_CELL", {
     rowIndex,
     varName,
     value,
@@ -47,7 +51,7 @@ function scheduleSave() {
 
   autosaveTimer = setTimeout(async () => {
     try {
-      await store.dispatch("editor/saveRows");
+      store.dispatch("editor/data/save");
     } catch (e) {
       console.error("Autosave schema failed", e);
     }
@@ -55,10 +59,10 @@ function scheduleSave() {
 }
 
 watch(
-  () => store.state.editor.rows,
+  () => store.state.editor.data.rows,
   () => {
-    if (store.state.editor.analyzing) return;
-    store.commit("editor/SET_SAVED", false);
+    if (store.state.analyze?.analyzing) return;
+    store.commit("editor/core/SET_SAVED", false);
     scheduleSave();
   },
   { deep: true }

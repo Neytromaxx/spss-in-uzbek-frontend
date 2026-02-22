@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useStore } from "vuex";
 
 import CorrelationForm from "./CorrelationForm.vue";
@@ -19,7 +19,7 @@ function close() {
 }
 
 async function runAnalysis(payload) {
-  await store.dispatch("analysis/analyze", payload);
+  await store.dispatch("editor/analyze/run", payload);
   close();
 }
 
