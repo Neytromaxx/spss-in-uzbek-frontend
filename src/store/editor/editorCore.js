@@ -39,7 +39,7 @@ export default {
 
       dispatch("schema/setFromApi", res.data.schema, { root: true });
       dispatch("data/setFromApi", res.data.rows, { root: true });
-      dispatch("analyze/reset", null, { root: true });
+      dispatch("editor/analyze/RESET", null, { root: true });
     },
   },
 };
