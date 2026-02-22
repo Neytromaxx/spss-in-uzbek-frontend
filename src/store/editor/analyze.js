@@ -55,15 +55,15 @@ export default {
     
       } catch (err) {
         console.error(err.response?.data);
-      } finally {
-        commit("SET_ANALYZING", false);
-      }
-      console.log("ANALYZE PAYLOAD:", payload);
+        console.log("ANALYZE PAYLOAD:", payload);
         console.log("REQUEST BODY:", {
           type: payload.type,
           params: payload.params || {},
           saveToProfile: false,
         });
+      } finally {
+        commit("SET_ANALYZING", false);
+      }
     },
   },
 };
