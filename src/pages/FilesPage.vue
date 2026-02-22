@@ -51,8 +51,9 @@ async function openFile(id) {
   // store.commit("editor/core/RESET");
   // await store.dispatch("editor/core/open", id);
   console.log("Before: ", router.currentRoute.value.fullPath)
-  router.push(`/files/${id}`);
+  router.replace(`/files/1b0a2773-132b-46cd-a08f-665e05fea417`);
   console.log("After: ", router.currentRoute.value.fullPath)
+  console.log(id)
 }
 </script>
 
