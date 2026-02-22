@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import FilesPage from "../pages/FilesPage.vue";
 import EditorPage from "../pages/EditorPage.vue";
+import InfoPage from "../pages/InfoPage.vue";
 import TelegramGate from "../pages/TelegramGate.vue";
 import store from "../store";
 
@@ -8,6 +9,7 @@ const routes = [
   { path: "/gate", component: TelegramGate },
   { path: "/", component: FilesPage },
   { path: "/files/:id", component: EditorPage, props: true },
+  { path: "/info", component: InfoPage },
 ];
 
 const router = createRouter({
