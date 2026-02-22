@@ -51,6 +51,12 @@ export default {
         );
     
         commit("SET_RESULT", res.data);
+        console.log("ANALYZE PAYLOAD:", payload);
+        console.log("REQUEST BODY:", {
+          type: payload.type,
+          params: payload.params || {},
+          saveToProfile: false,
+        });
     
       } catch (err) {
         console.error(err.response?.data);
