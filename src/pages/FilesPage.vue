@@ -48,19 +48,9 @@ function cancelCreate() {
 ================================ */
 async function openFile(id) {
   // MUHIM: har safar reset qilamiz
-  // store.commit("editor/core/RESET");
-  // await store.dispatch("editor/core/open", id);
-  console.log("Before: ", router.currentRoute.value.fullPath)
-  router.replace(`/files/${id}`);
-  console.log("After: ", router.currentRoute.value.fullPath)
-  console.log(id)
-}
+  store.commit("editor/RESET");
 
-function openInfo(){
-  console.log("Before: ", router.currentRoute.value.fullPath)
-  router.push('/info')
-  console.log("After: ", router.currentRoute.value.fullPath)
-  console.log('clicked info button')
+  await store.dispatch("editor/open", id);
 }
 </script>
 
@@ -107,10 +97,6 @@ function openInfo(){
         </button>
       </li>
     </ul>
-
-    <div class="info">
-      <button @click="openInfo()">Info</button>
-    </div>
   </div>
 </template>
 

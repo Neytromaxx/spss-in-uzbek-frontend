@@ -1,62 +1,48 @@
 <script setup>
-import { computed, ref, watch, onMounted } from "vue";
+import { ref } from "vue";
 import { useStore } from "vuex";
-import { useRoute } from "vue-router";
 
 import TopBar from "../components/TopBar.vue";
 import VariablesTab from "../components/VariablesTab.vue";
 import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
-import AnalyzeDialog from "../components/analysis/AnalyzeDialog.vue";
 
 const store = useStore();
-const route = useRoute();
-const dialogRef = ref(null);
 
-function openAnalyze(){
-  dialogRef.value?.open()
-}
-
-const activeTab = computed(() =>
-  store.state.editor.core.activeTab
-);
-
-function openTab(tab) {
-  store.commit("editor/core/SET_TAB", tab);
-}
+const varsTabRef = ref(null);
+const dataTabRef = ref(null);
 
 /* ===============================
-   LOAD FILE FROM ROUTE
+   TAB SWITCH
 ================================ */
+async function openTab(tab) {
+  store.commit("editor/SET_TAB", tab);
 
-async function loadFile(id){
-  if(!id) return;
+  if (
+    tab === "results" &&
+    Object.keys(store.state.editor.result.columns).length === 0 &&
+    store.state.editor.schema.variables.length > 0 &&
+    store.state.editor.rows.length > 0
+  ) {
+    // 🔥 MAJBURIY SAQLASH
+    await store.dispatch("editor/saveRows");
 
-  store.commit("editor/core/RESET");
-  await store.dispatch("editor/core/open", id);
+    await store.dispatch("editor/analyze");
+  }
 }
 
-onMounted(() => {
-  loadFile(route.params.id);
-});
-
-watch(
-  () => route.params.id,
-  (newId) => {
-    loadFile(newId);
-  }
-);
 </script>
 
 <template>
   <div class="editor">
+    <!-- TOP BAR -->
     <TopBar />
 
     <!-- TABS -->
     <div class="tabs">
       <div
         class="tab"
-        :class="{ active: activeTab === 'variables' }"
+        :class="{ active: store.state.editor.activeTab === 'variables' }"
         @click="openTab('variables')"
       >
         O‘zgaruvchilar
@@ -64,7 +50,7 @@ watch(
 
       <div
         class="tab"
-        :class="{ active: activeTab === 'data' }"
+        :class="{ active: store.state.editor.activeTab === 'data' }"
         @click="openTab('data')"
       >
         Ma’lumot
@@ -72,7 +58,7 @@ watch(
 
       <div
         class="tab"
-        :class="{ active: activeTab === 'results' }"
+        :class="{ active: store.state.editor.activeTab === 'results' }"
         @click="openTab('results')"
       >
         Tahlil
@@ -81,46 +67,52 @@ watch(
 
     <!-- CONTENT -->
     <div class="content">
-      <VariablesTab v-if="activeTab === 'variables'" />
-      <DataTab v-if="activeTab === 'data'" />
-      <ResultsTab v-if="activeTab === 'results'"
-        @openAnalyze="openAnalyze" />
-      <AnalyzeDialog ref="dialogRef" />
+      <VariablesTab
+        v-if="store.state.editor.activeTab === 'variables'"
+        ref="varsTabRef"
+      />
+
+      <DataTab
+        v-if="store.state.editor.activeTab === 'data'"
+        ref="dataTabRef"
+      />
+
+      <ResultsTab
+        v-if="store.state.editor.activeTab === 'results'"
+      />
     </div>
 
     <!-- ACTION BAR -->
     <div class="action-bar">
-      <!-- VARIABLES -->
-      <template v-if="activeTab === 'variables'">
+      <!-- VARIABLES ACTIONS -->
+      <template v-if="store.state.editor.activeTab === 'variables'">
         <button
-          @click="store.commit('editorCore/SET_SAVED', false)"
+          @click="varsTabRef.addVariable()"
         >
-          O‘zgaruvchini saqlash kerak
+          + O‘zgaruvchi qo‘shish
         </button>
 
         <button
           class="primary"
-          :disabled="store.state.editorCore.saving"
-          @click="store.dispatch('editorCore/saveSchema')"
+          :disabled="store.state.editor.saving"
+          @click="store.dispatch('editor/saveSchema')"
         >
           Saqlash
         </button>
       </template>
 
-      <!-- DATA -->
-      <template v-if="activeTab === 'data'">
+      <!-- DATA ACTIONS -->
+      <template v-if="store.state.editor.activeTab === 'data'">
         <button
-          @click="store.commit(
-            'editorData/ADD_ROW',
-            store.state.editorCore.schema.variables
-          )"
+          @click="dataTabRef.addRow()"
         >
           + Qator qo‘shish
         </button>
 
         <button
           class="primary"
-          @click="store.dispatch('editorData/saveRows')"
+          :disabled="store.state.editor.saving"
+          @click="store.dispatch('editor/saveRows')"
         >
           Saqlash
         </button>
