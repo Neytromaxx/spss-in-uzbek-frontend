@@ -58,6 +58,8 @@ async function openFile(id) {
 
 function openInfo(){
   router.push('/info')
+  console.log("After: ", router.currentRoute.value.fullPath)
+  console.log('clicking info button')
 }
 </script>
 
