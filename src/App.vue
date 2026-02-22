@@ -15,7 +15,7 @@ onMounted(() => {
     <div v-if="store.state.auth.loading">
       Yuklanmoqda...
     </div>
-    <FilesPage v-if="!store.state.editor.file" />
+    <FilesPage v-if="!store.state.editor.core.file" />
   <EditorPage v-else />
   </div>
 </template>
