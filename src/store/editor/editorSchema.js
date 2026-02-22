@@ -61,7 +61,17 @@ export default {
 
   actions: {
     setFromApi({ commit }, schema) {
-      commit("SET_VARIABLES", schema?.variables ?? []);
+      const vars = (schema?.variables || []).map(v => ({
+        name: v.name,
+        label: v.label || "",
+        measure:
+          v.measure ||
+          (v.type === "numeric" ? "scale" : "nominal"),
+        values: v.values || v.labels || null,
+        _showValues: false,
+      }));
+    
+      commit("SET_VARIABLES", vars);
     },
 
     async save({ state, rootState, commit }) {
