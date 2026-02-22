@@ -55,6 +55,10 @@ async function openFile(id) {
   console.log("After: ", router.currentRoute.value.fullPath)
   console.log(id)
 }
+
+function openInfo(){
+  router.push('/info')
+}
 </script>
 
 <template>
@@ -100,6 +104,10 @@ async function openFile(id) {
         </button>
       </li>
     </ul>
+
+    <div class="info">
+      <button @click="openFile()">Info</button>
+    </div>
   </div>
 </template>
 
