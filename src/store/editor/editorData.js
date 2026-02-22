@@ -1,3 +1,4 @@
+// store/editor/editorData.js
 import api from "../../api";
 
 export default {
@@ -9,7 +10,7 @@ export default {
 
   mutations: {
     SET_ROWS(state, rows) {
-      state.rows = rows;
+      state.rows = rows.map(r => r.values);
     },
 
     ADD_ROW(state, variables) {
@@ -28,29 +29,18 @@ export default {
       if (!state.rows[rowIndex]) return;
       state.rows[rowIndex][varName] = value;
     },
-
-    ADD_VARIABLE_COLUMN(state, variable) {
-      state.rows.forEach(r => {
-        r[variable.name] = "";
-      });
-    },
   },
 
   actions: {
-    async loadRows({ commit, rootState }) {
-      const file = rootState.editor.file;
-      if (!file) return;
-
-      const res = await api.get(`/files/${file.id}`);
-      commit(
-        "SET_ROWS",
-        res.data.rows.map(r => r.values)
-      );
+    setFromApi({ commit }, rows) {
+      commit("SET_ROWS", rows || []);
     },
 
-    async saveRows({ state, rootState }) {
-      const file = rootState.editor.file;
+    async save({ state, rootState, commit }) {
+      const file = rootState.editor.core.file;
       if (!file) return;
+
+      commit("editor/core/SET_SAVING", true, { root: true });
 
       await api.put(`/files/${file.id}/rows:bulk`, {
         rows: state.rows.map((r, i) => ({
@@ -58,6 +48,9 @@ export default {
           values: r,
         })),
       });
+
+      commit("editor/core/SET_SAVING", false, { root: true });
+      commit("editor/core/SET_SAVED", true, { root: true });
     },
   },
 };

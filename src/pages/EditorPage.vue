@@ -6,7 +6,7 @@ import TopBar from "../components/TopBar.vue";
 import VariablesTab from "../components/VariablesTab.vue";
 import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
-import AnalyzeDialog from "../components/analysis/AnalyzeDialog.vue"
+import AnalyzeDialog from "../components/analysis/AnalyzeDialog.vue";
 
 const store = useStore();
 const dialogRef = ref(null)
@@ -19,14 +19,17 @@ function openAnalyze(){
    STATE ACCESS
 ================================ */
 
-const activeTab = computed(() => store.state.editor.activeTab);
+const activeTab = computed(() =>
+  store.state.editor.core.activeTab
+);
+
 
 /* ===============================
    TAB SWITCH
 ================================ */
 
 function openTab(tab) {
-  store.commit("editor/SET_TAB", tab);
+  store.commit("editor/core/SET_TAB", tab);
 }
 </script>
 
@@ -75,15 +78,15 @@ function openTab(tab) {
       <!-- VARIABLES -->
       <template v-if="activeTab === 'variables'">
         <button
-          @click="store.commit('editor/SET_SAVED', false)"
+          @click="store.commit('editorCore/SET_SAVED', false)"
         >
           O‘zgaruvchini saqlash kerak
         </button>
 
         <button
           class="primary"
-          :disabled="store.state.editor.saving"
-          @click="store.dispatch('editor/saveSchema')"
+          :disabled="store.state.editorCore.saving"
+          @click="store.dispatch('editorCore/saveSchema')"
         >
           Saqlash
         </button>
@@ -94,7 +97,7 @@ function openTab(tab) {
         <button
           @click="store.commit(
             'editorData/ADD_ROW',
-            store.state.editor.schema.variables
+            store.state.editorCore.schema.variables
           )"
         >
           + Qator qo‘shish

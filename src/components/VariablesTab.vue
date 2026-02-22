@@ -7,7 +7,9 @@ const store = useStore();
 /* ===============================
    STATE
 ================================ */
-const variables = computed(() => store.state.editorCore.schema.variables);
+const variables = computed(() =>
+  store.state.editor.schema.variables
+);
 
 /* ===============================
    ADD VARIABLE (EXPOSED)
@@ -15,7 +17,7 @@ const variables = computed(() => store.state.editorCore.schema.variables);
 function addVariable() {
   const index = variables.value.length + 1;
 
-  store.commit("editor/ADD_VARIABLE", {
+  store.commit("editor/schema/ADD_VARIABLE", {
     name: `var_${index}`,
     type: "numeric",
     label: "",
@@ -30,7 +32,7 @@ defineExpose({ addVariable });
    UPDATE HELPERS
 ================================ */
 function updateVar(index, key, value) {
-  store.commit("editor/UPDATE_VARIABLE", {
+  store.commit("editor/schema/UPDATE_VARIABLE", {
     index,
     key,
     value,
@@ -38,15 +40,15 @@ function updateVar(index, key, value) {
 }
 
 function toggleValues(index) {
-  store.commit("editor/TOGGLE_VALUES_EDITOR", index);
+  store.commit("editor/schema/TOGGLE_VALUES_EDITOR", index);
 }
 
 function addValue(index) {
-  store.commit("editor/ADD_VALUE_LABEL", index);
+  store.commit("editor/schema/ADD_VALUE_LABEL", index);
 }
 
 function updateValue(index, valKey, valLabel) {
-  store.commit("editor/UPDATE_VALUE_LABEL", {
+  store.commit("editor/schema/UPDATE_VALUE_LABEL", {
     index,
     valKey,
     valLabel,
@@ -54,7 +56,7 @@ function updateValue(index, valKey, valLabel) {
 }
 
 function removeValue(index, valKey) {
-  store.commit("editor/REMOVE_VALUE_LABEL", {
+  store.commit("editor/schema/REMOVE_VALUE_LABEL", {
     index,
     valKey,
   });
@@ -70,7 +72,7 @@ function scheduleSave() {
 
   autosaveTimer = setTimeout(async () => {
     try {
-      await store.dispatch("editor/saveSchema");
+      await store.dispatch("editor/schema/save");
     } catch (e) {
       console.error("Autosave schema failed", e);
     }
@@ -80,13 +82,13 @@ function scheduleSave() {
 watch(
   () => store.state.editor.schema.variables,
   () => {
-    if (store.state.editor.analyzing) return;
-
-    store.commit("editor/SET_SAVED", false);
+    if (store.state.editor.analyze.analyzing) return;
+    store.commit("editor/core/SET_SAVED", false);
     scheduleSave();
   },
   { deep: true }
 );
+
 
 onBeforeUnmount(() => {
   if (autosaveTimer) clearTimeout(autosaveTimer);

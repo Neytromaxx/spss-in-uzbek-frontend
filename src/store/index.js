@@ -1,16 +1,12 @@
 import { createStore } from "vuex";
 import auth from "./auth";
 import files from "./files";
-import editorCore from "./editor/editorCore";
-import editorData from "./editor/editorData";
-import analysis from "./editor/analysis";
+import index from "./editor/index"
 
 export default createStore({
   modules: {
     auth,
     files,
-    editorCore,
-    editorData,
-    analysis
+    editor: index,
   },
 });
