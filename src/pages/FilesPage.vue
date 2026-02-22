@@ -51,6 +51,7 @@ async function openFile(id) {
   // store.commit("editor/core/RESET");
   // await store.dispatch("editor/core/open", id);
   router.push(`/files/${id}`);
+  console.log("Clicked File ID: ", id)
 }
 </script>
 
