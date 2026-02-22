@@ -50,8 +50,9 @@ async function openFile(id) {
   // MUHIM: har safar reset qilamiz
   // store.commit("editor/core/RESET");
   // await store.dispatch("editor/core/open", id);
+  console.log("Before: ", router.currentRoute.value.fullPath)
   router.push(`/files/${id}`);
-  console.log("Clicked File ID: ", id)
+  console.log("After: ", router.currentRoute.value.fullPath)
 }
 </script>
 
