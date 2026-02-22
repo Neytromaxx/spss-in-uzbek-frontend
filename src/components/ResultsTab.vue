@@ -1,47 +1,103 @@
 <script setup>
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useStore } from "vuex";
-import ResultCard from "./analysis/ResultCard.vue";
 
-const emit = defineEmits(["openAnalyze"]);
 const store = useStore();
 
-const result = computed(() =>
-  store.state.editor.analyze.result
+const columns = computed(() =>
+  store.state.editor.result?.columns ?? {}
 );
 
-const analyzing = computed(() =>
-  store.state.editor.analyze.analyzing
+const hasResults = computed(
+  () => Object.keys(columns.value).length > 0
 );
+
+function fmt(value, digits = 3) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "—";
+  }
+  return Number(value).toFixed(digits);
+}
+
+watch(
+  () => store.state.editor.result,
+  v => {
+    console.log("RESULT UPDATED:", v?.columns);
+  },
+  { immediate: true }
+);
+
 </script>
 
 <template>
   <div class="results-tab">
+    <h3>Tahlil natijalari</h3>
 
-    <!-- HEADER -->
-    <div class="results-header">
-      <h3>Tahlil</h3>
-      <button class="primary" @click="emit('openAnalyze')">
-        Yangi tahlil
-      </button>
+    <div v-if="!hasResults" class="empty">
+      Avval tahlilni ishga tushiring
     </div>
 
-    <!-- LOADING -->
-    <div v-if="analyzing" class="muted">
-      Hisoblanmoqda...
+    <div v-if="hasResults" class="results-list">
+      <div
+        v-for="(col, name) in columns"
+        :key="name"
+        class="result-block"
+      >
+        <h4>
+          {{ col.label || name }}
+          <span class="meta">({{ col.measure }})</span>
+        </h4>
+
+        <!-- DESCRIPTIVE -->
+        <table
+          v-if="col.analysis === 'descriptive'"
+          class="result-table"
+        >
+          <tbody>
+            <tr><td>N</td><td>{{ col.descriptive.n }}</td></tr>
+            <tr><td>Min</td><td>{{ col.descriptive.min }}</td></tr>
+            <tr><td>Max</td><td>{{ col.descriptive.max }}</td></tr>
+            <tr><td>O‘rtacha</td><td>{{ fmt(col.descriptive.mean) }}</td></tr>
+            <tr><td>Median</td><td>{{ col.descriptive.median }}</td></tr>
+            <tr><td>SD</td><td>{{ fmt(col.descriptive.sd) }}</td></tr>
+            <tr><td>Q1</td><td>{{ col.descriptive.q1 }}</td></tr>
+            <tr><td>Q2</td><td>{{ col.descriptive.q2 }}</td></tr>
+            <tr><td>Q3</td><td>{{ col.descriptive.q3 }}</td></tr>
+            <tr><td>Skewness</td><td>{{ fmt(col.descriptive.skewness) }}</td></tr>
+            <tr><td>Kurtosis</td><td>{{ fmt(col.descriptive.kurtosis_excess) }}</td></tr>
+          </tbody>
+        </table>
+
+        <!-- FREQUENCY -->
+        <table
+          v-else-if="col.analysis === 'frequency'"
+          class="result-table"
+        >
+          <thead>
+            <tr>
+              <th>Qiymat</th>
+              <th>Chastota</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in col.frequency.table"
+              :key="row.value"
+            >
+              <td>{{ row.label || row.value }}</td>
+              <td>{{ row.count }}</td>
+              <td>{{ fmt(row.percent) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- FALLBACK -->
+        <div v-else class="muted">
+          Ushbu o‘zgaruvchi uchun natija yo‘q
+        </div>
+      </div>
     </div>
-
-    <!-- EMPTY -->
-    <div v-else-if="!result" class="empty">
-      Hali tahlil yo‘q
-    </div>
-
-    <!-- RESULT -->
-    <ResultCard
-      v-else
-      :result="result"
-    />
-
   </div>
 </template>
 
@@ -50,24 +106,35 @@ const analyzing = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 16px;
+  color: #e5e7eb;
 }
 
-.results-header {
+.empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.results-list {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.result-card {
-  background: #111827;
-  padding: 16px;
+.result-block {
+  border: 1px solid #1f2937;
+  padding: 12px;
+  background: #020617;
   border-radius: 8px;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+.result-block h4 {
+  margin-bottom: 8px;
+}
+
+.meta {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-left: 6px;
 }
 
 .result-table {
@@ -81,22 +148,11 @@ const analyzing = computed(() =>
   padding: 6px;
 }
 
-.block {
-  margin-bottom: 16px;
+.result-table th {
+  color: #9ca3af;
+  font-weight: 600;
 }
 
-.meta {
-  opacity: 0.5;
-  font-size: 12px;
-}
-
-.sig {
-  margin-left: 4px;
-  font-weight: bold;
-  color: #facc15;
-}
-
-.empty,
 .muted {
   opacity: 0.6;
 }
