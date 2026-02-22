@@ -48,8 +48,8 @@ function cancelCreate() {
 ================================ */
 async function openFile(id) {
   // MUHIM: har safar reset qilamiz
-  store.commit("editor/core/RESET");
-  await store.dispatch("editor/core/open", id);
+  // store.commit("editor/core/RESET");
+  // await store.dispatch("editor/core/open", id);
   router.push(`/files/${id}`);
 }
 </script>
