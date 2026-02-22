@@ -37,25 +37,23 @@ export default {
     async run({ commit, rootState }, payload) {
       const file = rootState.editor.core.file;
       if (!file) return;
-
+    
       commit("SET_ANALYZING", true);
-      commit("SET_ERROR", null);
-
+    
       try {
         const res = await api.post(
           `/analyze/files/${file.id}`,
-          payload   // MUHIM: type va params yuboriladi
+          {
+            type: payload.type,
+            params: payload.params || {},
+            saveToProfile: false,
+          }
         );
-
+    
         commit("SET_RESULT", res.data);
-
+    
       } catch (err) {
-        const message =
-          err.response?.data?.detail ||
-          "Analysis failed";
-
-        commit("SET_ERROR", message);
-
+        console.error(err.response?.data);
       } finally {
         commit("SET_ANALYZING", false);
       }
