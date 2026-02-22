@@ -106,7 +106,7 @@ function openInfo(){
     </ul>
 
     <div class="info">
-      <button @click="openFile()">Info</button>
+      <button @click="openInfo()">Info</button>
     </div>
   </div>
 </template>
