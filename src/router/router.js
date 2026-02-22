@@ -43,8 +43,8 @@ router.beforeEach(async (to) => {
     }
   
     // Agar editor yopilgan bo‘lsa, URL’ni tozalaymiz
-    if (to.path === "/" && store.state.editor.file) {
-      store.commit("editor/RESET");
+    if (to.path === "/" && store.state.editor.core.file) {
+      store.commit("editor/core/RESET");
     }
   });
   
