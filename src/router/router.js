@@ -2,11 +2,13 @@ import { createRouter, createWebHistory } from "vue-router";
 import FilesPage from "../pages/FilesPage.vue";
 import EditorPage from "../pages/EditorPage.vue";
 import TelegramGate from "../pages/TelegramGate.vue";
+import MainView from "../layouts/MainView.vue"
 import store from "../store";
 
 const routes = [
   { path: "/gate", component: TelegramGate },
-  { path: "/", component: FilesPage },
+  { path: "/files", component: FilesPage },
+  { path: "/", component: MainView },
   { path: "/files/:id", component: EditorPage, props: true },
 ];
 
