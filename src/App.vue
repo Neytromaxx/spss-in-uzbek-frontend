@@ -1,22 +1,24 @@
 <script setup>
-import { onMounted } from "vue";
-import { useStore } from "vuex";
-import FilesPage from "./pages/FilesPage.vue";
-import EditorPage from "./pages/EditorPage.vue";
+// import { onMounted } from "vue";
+// import { useStore } from "vuex";
+// import FilesPage from "./pages/FilesPage.vue";
+// import EditorPage from "./pages/EditorPage.vue";
+import MainView from "./layouts/MainView.vue";
 
-const store = useStore();
+// const store = useStore();
 
-onMounted(() => {
-  store.dispatch("auth/login");
-});
+// onMounted(() => {
+//   store.dispatch("auth/login");
+// });
 </script>
 <template>
   <div class="wrapper">
-    <div v-if="store.state.auth.loading">
+    <main-view></main-view>
+    <!-- <div v-if="store.state.auth.loading">
       Yuklanmoqda...
     </div>
     <FilesPage v-if="!store.state.editor.file" />
-  <EditorPage v-else />
+  <EditorPage v-else /> -->
   </div>
 </template>
 
