@@ -5,12 +5,18 @@ export default {
   state: () => ({
     user: null,
     loading: false,
-    // "telegram" | "email" | null (anonim)
-    method: null,
+    method: null, // "telegram" | "email" | null (anonim)
+    loginVisible: false,
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.user,
+    displayName: (state) => {
+      const u = state.user;
+      if (!u) return "";
+      if (u.first_name) return [u.first_name, u.last_name].filter(Boolean).join(" ");
+      return u.email || u.telegram_id || "Foydalanuvchi";
+    },
   },
 
   mutations: {
@@ -27,49 +33,81 @@ export default {
       state.user = null;
       state.method = null;
     },
+    SET_LOGIN_VISIBLE(state, v) {
+      state.loginVisible = v;
+    },
   },
 
   actions: {
-    // Ilova ochilganda: Telegram WebApp bo'lsa avtomatik kiramiz,
-    // aks holda saqlangan token orqali sessiyani tiklashga urinamiz.
-    async init({ dispatch, commit }) {
+    // Ilova ochilganda sessiyani tiklaydi (token bo'lsa /auth/me).
+    async init({ commit, dispatch }) {
       const tg = window.Telegram?.WebApp;
-      if (tg?.initData) {
-        try {
-          await dispatch("loginTelegram");
-          return;
-        } catch (e) {
-          console.warn("Telegram auto-login failed:", e);
-        }
+      if (tg?.initData && !localStorage.getItem("token")) {
+        // Telegram WebApp ichida ochilgan bo'lsa ham hozircha anonim
+        // ishlaymiz; kirish LoginModal orqali (deep-link/email).
       }
-      // Brauzer/PWA: token bo'lsa foydalanuvchini tiklaymiz (2-bosqichda to'liq)
       const token = localStorage.getItem("token");
-      if (token) {
-        commit("SET_METHOD", localStorage.getItem("auth_method") || null);
-      }
-    },
-
-    async loginTelegram({ commit }) {
-      commit("SET_LOADING", true);
+      if (!token) return;
       try {
-        const tg = window.Telegram?.WebApp;
-        if (!tg?.initData) throw new Error("Telegram WebApp not found");
-
-        tg.ready();
-        const res = await api.post("/auth/telegram", { initData: tg.initData });
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("auth_method", "telegram");
-        commit("SET_USER", res.data.user);
-        commit("SET_METHOD", "telegram");
-      } finally {
-        commit("SET_LOADING", false);
+        const res = await api.get("/auth/me");
+        commit("SET_USER", res.data);
+        commit("SET_METHOD", localStorage.getItem("auth_method") || null);
+      } catch (e) {
+        // token eskirgan
+        dispatch("logout");
       }
     },
 
-    logout({ commit }) {
+    // ── Email OTP ──
+    async requestEmailCode(_ctx, email) {
+      await api.post("/auth/email/request", { email });
+    },
+
+    async verifyEmail({ commit, dispatch }, { email, code }) {
+      const res = await api.post("/auth/email/verify", { email, code });
+      await dispatch("_completeLogin", { token: res.data.token, user: res.data.user, method: "email" });
+    },
+
+    // ── Telegram deep-link ──
+    async telegramStart() {
+      const res = await api.post("/auth/telegram/start");
+      return res.data; // { token, deep_link, expires_in }
+    },
+
+    // token — telegram/start dan olingan login token
+    async telegramPoll({ dispatch }, loginToken) {
+      const res = await api.get("/auth/telegram/poll", { params: { token: loginToken } });
+      if (res.data.status === "ready") {
+        await dispatch("_completeLogin", {
+          token: res.data.token,
+          user: res.data.user,
+          method: "telegram",
+        });
+        return true;
+      }
+      return false;
+    },
+
+    // Login yakunlash: token saqlaymiz, anonim fayllarni biriktiramiz, user
+    async _completeLogin({ commit, dispatch }, { token, user, method }) {
+      localStorage.setItem("token", token);
+      localStorage.setItem("auth_method", method);
+      commit("SET_USER", user);
+      commit("SET_METHOD", method);
+      try {
+        await api.post("/files/claim");
+      } catch (e) {
+        /* claim ixtiyoriy — xato bo'lsa ham login davom etadi */
+      }
+      // biriktirilgan fayllar ro'yxatini yangilaymiz
+      dispatch("files/load", null, { root: true });
+    },
+
+    logout({ commit, dispatch }) {
       localStorage.removeItem("token");
       localStorage.removeItem("auth_method");
       commit("LOGOUT");
+      dispatch("files/load", null, { root: true });
     },
   },
 };
