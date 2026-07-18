@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 
@@ -8,6 +8,16 @@ const router = useRouter();
 
 const creating = ref(false);
 const newTitle = ref("");
+
+const isAuth = computed(() => store.getters["auth/isAuthenticated"]);
+const displayName = computed(() => store.getters["auth/displayName"]);
+
+function openLogin() {
+  store.commit("auth/SET_LOGIN_VISIBLE", true);
+}
+function logout() {
+  store.dispatch("auth/logout");
+}
 
 /* ===============================
    LOAD FILES
@@ -56,7 +66,16 @@ async function openFile(id) {
 
 <template>
   <div class="files-page">
-    <h2>Mening tadqiqotlarim</h2>
+    <div class="page-head">
+      <h2>Mening tadqiqotlarim</h2>
+      <div class="auth-box">
+        <template v-if="isAuth">
+          <span class="who">{{ displayName }}</span>
+          <button class="ghost" @click="logout">Chiqish</button>
+        </template>
+        <button v-else class="ghost" @click="openLogin">Kirish</button>
+      </div>
+    </div>
 
     <!-- CREATE -->
     <div class="create-box">
@@ -103,6 +122,34 @@ async function openFile(id) {
 <style scoped>
 .files-page {
   padding: 16px;
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.auth-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.who {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
 }
 
 .create-box {
