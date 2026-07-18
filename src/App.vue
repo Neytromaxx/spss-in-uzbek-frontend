@@ -1,12 +1,11 @@
 <script setup>
 import { onMounted } from "vue";
 import { useStore } from "vuex";
+import LoginModal from "./components/LoginModal.vue";
 
 const store = useStore();
 
 onMounted(() => {
-  // Telegram WebApp ichida ochilgan bo'lsa avtomatik kiramiz.
-  // PWA (brauzer) rejimida login ixtiyoriy — anonim ishlash mumkin.
   store.dispatch("auth/init");
 });
 </script>
@@ -14,6 +13,7 @@ onMounted(() => {
 <template>
   <div class="app-shell">
     <router-view />
+    <LoginModal />
   </div>
 </template>
 

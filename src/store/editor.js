@@ -222,13 +222,36 @@ export default {
         const res = await api.post(`/analyze/files/${state.file.id}`, {
           type: payload.type ?? "auto",
           params: payload.params ?? {},
-          saveToProfile: false,
+          saveToProfile: payload.saveToProfile ?? false,
         });
 
         commit("SET_RESULT", res.data);
       } finally {
         commit("SET_ANALYZING", false);
       }
+    },
+
+    // Natijani profilga saqlash (login talab qilinadi — backend 401 qaytaradi)
+    async saveResult({ state, dispatch }) {
+      if (!state.file) return;
+      await dispatch("analyze", { saveToProfile: true });
+    },
+
+    // Natijani .docx / .pdf sifatida yuklab olish (login talab qilinadi)
+    async exportResult({ state }, fmt) {
+      if (!state.file) return;
+      const res = await api.get(`/analyze/files/${state.file.id}/export`, {
+        params: { fmt },
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${state.file.title || "natija"}.${fmt}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     },
   },
 };
