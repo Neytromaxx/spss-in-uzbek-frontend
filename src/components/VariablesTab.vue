@@ -188,79 +188,97 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: #e5e7eb;
+  color: var(--t1);
+}
+.variables-tab h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.5rem;
 }
 
 .empty {
-  opacity: 0.6;
-  font-style: italic;
+  color: var(--t3);
+  font-size: .9rem;
+  padding: 32px 0;
+  text-align: center;
 }
 
 .vars-table {
   width: 100%;
   border-collapse: collapse;
+  background: var(--s1);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.vars-table th {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--t3);
 }
 
 .vars-table th,
 .vars-table td {
-  border-bottom: 1px solid #1f2937;
-  padding: 8px;
+  border-bottom: 1px solid var(--bd);
+  padding: 10px 12px;
   text-align: left;
 }
 
 .mono {
-  font-family: monospace;
-  color: #93c5fd;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--a1);
+  font-size: .82rem;
 }
 
-input,
-select {
-  width: 100%;
-  background: #020617;
-  border: 1px solid #1f2937;
-  color: #e5e7eb;
-  padding: 6px;
+.vars-table input,
+.vars-table select {
+  padding: 8px 10px;
+  font-size: .84rem;
 }
 
 .link {
-  background: none;
-  border: none;
-  color: #60a5fa;
-  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--bd);
+  color: var(--a1);
+  font-size: .78rem;
+  padding: 6px 12px;
 }
 
 .muted {
-  color: #6b7280;
+  color: var(--t3);
 }
 
 .values-editor {
-  background: #020617;
-  border: 1px solid #1f2937;
-  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: var(--r3);
+  padding: 12px;
 }
 
 .value-row {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .value-key {
-  width: 40px;
-  font-family: monospace;
-  color: #a7f3d0;
+  width: 36px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--a3);
+  flex-shrink: 0;
 }
 
 .small {
   margin-top: 6px;
-  padding: 4px 8px;
+  padding: 7px 14px;
+  font-size: .78rem;
 }
 
-.danger {
-  background: none;
-  border: none;
-  color: #ef4444;
-  cursor: pointer;
+.value-row .danger {
+  padding: 6px 10px;
+  flex-shrink: 0;
 }
 </style>

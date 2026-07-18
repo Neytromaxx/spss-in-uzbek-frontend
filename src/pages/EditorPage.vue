@@ -123,37 +123,50 @@ async function openTab(tab) {
 
 <style scoped>
 .editor {
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #0f1115;
 }
 
 .tabs {
   display: flex;
-  background: #020617;
-  border-bottom: 1px solid #1f2937;
+  background: rgba(6, 8, 16, .88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--bd);
+  position: sticky;
+  top: 0;
+  z-index: 200;
 }
 
 .tab {
   flex: 1;
   text-align: center;
-  padding: 14px 0;
+  padding: 15px 0;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--t2);
   font-weight: 600;
-  border-bottom: 3px solid transparent;
+  font-size: .9rem;
+  border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+}
+
+.tab:hover {
+  color: var(--t1);
 }
 
 .tab.active {
-  color: #fff;
-  border-bottom: 3px solid #2563eb;
+  color: var(--a1);
+  border-bottom: 2px solid var(--a1);
 }
 
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 20px clamp(16px, 4vw, 32px);
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .action-bar {
@@ -162,8 +175,9 @@ async function openTab(tab) {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  padding: 12px;
-  background: #020617;
-  border-top: 1px solid #1f2937;
+  padding: 14px clamp(16px, 4vw, 32px);
+  background: rgba(6, 8, 16, .92);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--bd);
 }
 </style>

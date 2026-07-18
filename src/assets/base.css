@@ -1,45 +1,152 @@
+/* ksi dizayn tizimi — SPSS uchun moslashtirilgan */
+:root {
+  --bg: #060810;
+  --s1: #0b0e1a;
+  --s3: #161b2e;
+  --s4: #1c2240;
+  --bd: #1e2438;
+  --bd2: #28304d;
+  --bd3: #323d60;
+  --a1: #4f6ef7;
+  --a2: #8b5cf6;
+  --a3: #06d6a0;
+  --a4: #f59e0b;
+  --a5: #ef4444;
+  --a1g: rgba(79, 110, 247, .15);
+  --a2g: rgba(139, 92, 246, .12);
+  --a3g: rgba(6, 214, 160, .1);
+  --t1: #e2e6f8;
+  --t2: #7b84b0;
+  --t3: #454d72;
+  --r: 16px;
+  --r2: 12px;
+  --r3: 8px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, .4);
+}
+
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-html, body, #app {
-  height: 100%;
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  margin: 0;
-  background: #0f1115;
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--t1);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  line-height: 1.5;
 }
 
+/* BG mesh */
+.mesh {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.mesh-dot {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+}
+.m1 {
+  width: 800px;
+  height: 800px;
+  top: -300px;
+  left: -200px;
+  background: radial-gradient(circle, rgba(79, 110, 247, .08), transparent 65%);
+}
+.m2 {
+  width: 600px;
+  height: 600px;
+  bottom: -200px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(139, 92, 246, .07), transparent 65%);
+}
+.m3 {
+  width: 400px;
+  height: 400px;
+  top: 50%;
+  left: 60%;
+  background: radial-gradient(circle, rgba(6, 214, 160, .04), transparent 65%);
+}
+
+/* ── Umumiy element stillari ── */
 button {
-  border: none;
-  background: #1f2937;
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 8px;
+  font-family: 'Syne', sans-serif;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  color: var(--t1);
+  padding: 10px 16px;
+  border-radius: var(--r3);
   cursor: pointer;
+  font-weight: 600;
+  transition: all .2s;
 }
-
+button:hover:not(:disabled) {
+  border-color: var(--bd2);
+}
 button.primary {
-  background: #2563eb;
+  background: linear-gradient(135deg, var(--a1), var(--a2));
+  border: none;
+  color: #fff;
+  box-shadow: 0 0 24px rgba(79, 110, 247, .3);
 }
-
+button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 36px rgba(79, 110, 247, .5);
+}
 button.danger {
-  background: #b91c1c;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, .4);
+  color: var(--a5);
 }
-
+button.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, .1);
+}
 button:disabled {
-  opacity: 0.5;
+  opacity: .45;
   cursor: not-allowed;
 }
 
 input, select {
-  background: #020617;
-  border: 1px solid #374151;
-  color: #fff;
-  padding: 8px;
-  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  color: var(--t1);
+  padding: 11px 14px;
+  border-radius: var(--r3);
   width: 100%;
+  font-family: 'Syne', sans-serif;
+  font-size: .9rem;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+input:focus, select:focus {
+  border-color: var(--a1);
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, .1);
+}
+select option {
+  background: var(--s1);
+}
+
+/* Gradient sarlavha yordamchisi */
+.serif {
+  font-family: 'Instrument Serif', serif;
+}
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+.grad-text {
+  background: linear-gradient(135deg, var(--a1), var(--a2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

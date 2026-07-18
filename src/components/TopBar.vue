@@ -1,9 +1,11 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useStore } from "vuex";
+import { useRouter } from "vue-router";
 import api from "../api";
 
 const store = useStore();
+const router = useRouter();
 
 const title = ref("");
 const savingTitle = ref(false);
@@ -57,6 +59,7 @@ watch(title, (val, old) => {
 ================================ */
 function back() {
   store.commit("editor/RESET");
+  router.push("/");
 }
 </script>
 
@@ -83,32 +86,46 @@ function back() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  background: #020617;
-  border-bottom: 1px solid #1f2937;
+  padding: 12px clamp(16px, 4vw, 32px);
+  background: rgba(6, 8, 16, .88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--bd);
+  position: sticky;
+  top: 0;
+  z-index: 250;
 }
 
 .back {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 16px;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .title-input {
   flex: 1;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   background: transparent;
-  border: none;
-  color: #fff;
+  border: 1px solid transparent;
+  color: var(--t1);
+  width: auto;
 }
 
 .title-input:focus {
   outline: none;
-  border-bottom: 1px solid #2563eb;
+  border-color: var(--bd);
+  box-shadow: none;
 }
 
 .status {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: .72rem;
+  color: var(--t3);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 </style>
