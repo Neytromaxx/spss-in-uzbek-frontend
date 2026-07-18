@@ -1,41 +1,25 @@
 <script setup>
 import { onMounted } from "vue";
 import { useStore } from "vuex";
-import FilesPage from "./pages/FilesPage.vue";
-import EditorPage from "./pages/EditorPage.vue";
 
 const store = useStore();
 
 onMounted(() => {
-  store.dispatch("auth/login");
+  // Telegram WebApp ichida ochilgan bo'lsa avtomatik kiramiz.
+  // PWA (brauzer) rejimida login ixtiyoriy — anonim ishlash mumkin.
+  store.dispatch("auth/init");
 });
 </script>
+
 <template>
-  <div class="wrapper">
-    <div v-if="store.state.auth.loading">
-      Yuklanmoqda...
-    </div>
-    <FilesPage v-if="!store.state.editor.file" />
-  <EditorPage v-else />
+  <div class="app-shell">
+    <router-view />
   </div>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 </style>

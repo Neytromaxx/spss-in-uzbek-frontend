@@ -213,18 +213,22 @@ export default {
 
     /* ===== ANALYZE ===== */
 
-    async analyze({ state, commit }) {
+    async analyze({ state, commit }, payload = {}) {
       if (!state.file) return;
 
       commit("SET_ANALYZING", true);
 
-      const res = await api.post(
-        `/analyze/files/${state.file.id}`,
-        { saveToProfile: false }
-      );
+      try {
+        const res = await api.post(`/analyze/files/${state.file.id}`, {
+          type: payload.type ?? "auto",
+          params: payload.params ?? {},
+          saveToProfile: false,
+        });
 
-      commit("SET_RESULT", res.data);
-      commit("SET_ANALYZING", false);
+        commit("SET_RESULT", res.data);
+      } finally {
+        commit("SET_ANALYZING", false);
+      }
     },
   },
 };

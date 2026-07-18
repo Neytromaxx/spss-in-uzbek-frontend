@@ -18,8 +18,14 @@ export default {
   },
   actions: {
     async load({ commit }) {
-      const res = await api.get("/files");
-      commit("SET_FILES", res.data);
+      try {
+        const res = await api.get("/files");
+        commit("SET_FILES", res.data);
+      } catch (e) {
+        // Anonim (loginsiz) yoki backend mavjud bo'lmasa — bo'sh ro'yxat.
+        // Saqlangan tadqiqotlar login qilingandan keyin ko'rinadi.
+        commit("SET_FILES", []);
+      }
     },
     async create({ commit }, title) {
       const res = await api.post("/files", { title });
