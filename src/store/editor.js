@@ -234,10 +234,14 @@ export default {
       }
     },
 
-    // Natijani profilga saqlash (login talab qilinadi — backend 401 qaytaradi)
+    // Natijani profilga saqlash (oxirgi tanlangan metod bilan; login talab)
     async saveResult({ state, dispatch }) {
       if (!state.file) return;
-      await dispatch("analyze", { saveToProfile: true });
+      await dispatch("analyze", {
+        type: state.result?.type || "auto",
+        params: state.result?.params || {},
+        saveToProfile: true,
+      });
     },
 
     // Natijani .docx / .pdf sifatida yuklab olish (login talab qilinadi)

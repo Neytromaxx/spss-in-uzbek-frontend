@@ -20,13 +20,12 @@ async function openTab(tab) {
 
   if (
     tab === "results" &&
-    Object.keys(store.state.editor.result.columns).length === 0 &&
+    (store.state.editor.result.tables?.length ?? 0) === 0 &&
     store.state.editor.schema.variables.length > 0 &&
     store.state.editor.rows.length > 0
   ) {
-    // 🔥 MAJBURIY SAQLASH
+    // majburiy saqlash, keyin avtomatik (auto) tahlil
     await store.dispatch("editor/saveRows");
-
     await store.dispatch("editor/analyze");
   }
 }
