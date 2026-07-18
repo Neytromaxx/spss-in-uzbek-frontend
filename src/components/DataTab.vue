@@ -143,13 +143,18 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: #e5e7eb;
+  color: var(--t1);
+}
+.data-tab h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.5rem;
 }
 
 .table-wrapper {
   overflow: auto;
-  border: 1px solid #1f2937;
-  border-radius: 8px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  background: var(--s1);
 }
 
 table {
@@ -161,41 +166,48 @@ table {
 thead {
   position: sticky;
   top: 0;
-  background: #020617;
+  background: var(--s3);
   z-index: 1;
 }
 
 th, td {
-  border-bottom: 1px solid #1f2937;
-  padding: 8px;
+  border-bottom: 1px solid var(--bd);
+  padding: 8px 10px;
   text-align: left;
 }
 
 th {
-  color: #9ca3af;
-  font-weight: 600;
+  color: var(--t3);
+  font-weight: 700;
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: nowrap;
 }
 
 .row-index {
-  opacity: 0.6;
+  color: var(--t3);
   width: 40px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem;
 }
 
-input, select {
-  width: 100%;
-  background: #020617;
-  border: 1px solid #1f2937;
-  color: #e5e7eb;
-  padding: 4px;
+table input,
+table select {
+  padding: 7px 8px;
+  font-size: .82rem;
+  min-width: 90px;
 }
 
 button.small {
-  padding: 6px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: .78rem;
 }
 
 .empty {
-  opacity: 0.6;
-  font-style: italic;
+  color: var(--t3);
+  font-size: .9rem;
+  padding: 32px 0;
+  text-align: center;
 }
 </style>
