@@ -47,11 +47,14 @@ export default {
     },
 
     SET_RESULT(state, payload) {
-      // payload = AnalyzeResponse
+      // payload = AnalyzeResponse. Backend endi kanonik sxema (tables)
+      // qaytaradi; ustunli ko'rinish vaqtincha legacy_columns'dan olinadi.
+      const r = payload.result || {};
       state.result = {
         type: payload.type ?? null,
         params: payload.params ?? null,
-        columns: payload.result?.columns ?? {},
+        columns: r.legacy_columns?.columns ?? r.columns ?? {},
+        tables: r.tables ?? [],
       };
     },
 
