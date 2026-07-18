@@ -19,7 +19,7 @@ function close() {
 }
 
 async function runAnalysis(payload) {
-  await store.dispatch("editor/analyze/run", payload);
+  await store.dispatch("editor/analyze", payload);
   close();
 }
 
