@@ -244,11 +244,20 @@ export default {
       });
     },
 
-    // Natijani .docx / .pdf sifatida yuklab olish (login talab qilinadi)
-    async exportResult({ state }, fmt) {
+    // Natijani .docx / .pdf sifatida yetkazish (login talab qilinadi).
+    // deliver: "browser" (brauzerdan yuklab olish) | "telegram" (botga yuborish)
+    async exportResult({ state }, { fmt, deliver = "browser" }) {
       if (!state.file) return;
+
+      if (deliver === "telegram") {
+        const res = await api.get(`/analyze/files/${state.file.id}/export`, {
+          params: { fmt, deliver: "telegram" },
+        });
+        return res.data; // { ok, delivered: "telegram" }
+      }
+
       const res = await api.get(`/analyze/files/${state.file.id}/export`, {
-        params: { fmt },
+        params: { fmt, deliver: "browser" },
         responseType: "blob",
       });
       const url = URL.createObjectURL(res.data);
