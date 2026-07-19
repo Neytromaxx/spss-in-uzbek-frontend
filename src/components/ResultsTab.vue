@@ -10,9 +10,11 @@ const result = computed(() => store.state.editor.result);
 const tables = computed(() => result.value?.tables ?? []);
 const hasResults = computed(() => tables.value.length > 0);
 const isAuth = computed(() => store.getters["auth/isAuthenticated"]);
+const hasTelegram = computed(() => !!store.state.auth.user?.telegram_id);
 
 const busy = ref("");
 const notice = ref("");
+const deliver = ref("browser"); // "browser" | "telegram"
 
 function openLogin() {
   store.commit("auth/SET_LOGIN_VISIBLE", true);
@@ -34,12 +36,16 @@ async function onSave() {
 
 async function onExport(f) {
   if (!isAuth.value) return openLogin();
+  const mode = hasTelegram.value ? deliver.value : "browser";
   busy.value = f;
   notice.value = "";
   try {
-    await store.dispatch("editor/exportResult", f);
+    await store.dispatch("editor/exportResult", { fmt: f, deliver: mode });
+    if (mode === "telegram") {
+      notice.value = "✓ Fayl Telegram botga yuborildi";
+    }
   } catch (e) {
-    notice.value = "Yuklab olishda xatolik";
+    notice.value = e.response?.data?.detail || "Yetkazishda xatolik";
   } finally {
     busy.value = "";
   }
@@ -65,6 +71,17 @@ async function onExport(f) {
       <div v-if="!isAuth" class="login-banner">
         <span>💾 Natijani saqlash yoki Word/PDF yuklab olish uchun tizimga kiring.</span>
         <button @click="openLogin">Kirish</button>
+      </div>
+
+      <!-- Yetkazish usuli (faqat Telegram bilan bog'langan bo'lsa) -->
+      <div v-if="isAuth && hasTelegram" class="deliver">
+        <span class="dlbl">Fayl qayerga:</span>
+        <button :class="{ on: deliver === 'browser' }" @click="deliver = 'browser'">
+          📥 Yuklab olish
+        </button>
+        <button :class="{ on: deliver === 'telegram' }" @click="deliver = 'telegram'">
+          📨 Telegram
+        </button>
       </div>
 
       <div class="actions">
@@ -139,6 +156,31 @@ async function onExport(f) {
   padding: 9px 18px;
   white-space: nowrap;
   font-weight: 700;
+}
+.deliver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dlbl {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--t3);
+}
+.deliver button {
+  background: var(--s3);
+  border: 1px solid var(--bd);
+  color: var(--t2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: .78rem;
+}
+.deliver button.on {
+  background: var(--a1g);
+  border-color: rgba(79, 110, 247, .4);
+  color: var(--a1);
 }
 .actions {
   display: flex;
