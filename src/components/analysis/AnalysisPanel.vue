@@ -33,11 +33,14 @@ const METHODS = [
   { key: "wilcoxon", label: "Uilkokson (noparametrik juft)" },
   { key: "kruskal", label: "Kruskal-Uollis H (noparametrik)" },
   { key: "friedman", label: "Fridman (noparametrik takroriy)" },
+  { key: "crosstab", label: "Kesishma jadvali + xi-kvadrat" },
+  { key: "chi_gof", label: "Xi-kvadrat moslik testi" },
+  { key: "fisher", label: "Fisher aniq testi (2×2)" },
 ];
 
 const needsVars = computed(() =>
   ["correlation", "reliability", "partial_correlation", "normality",
-   "ttest_paired", "wilcoxon", "friedman"].includes(method.value)
+   "ttest_paired", "wilcoxon", "friedman", "crosstab", "chi_gof", "fisher"].includes(method.value)
 );
 const needsControls = computed(() => method.value === "partial_correlation");
 const needsDepGroup = computed(() =>
@@ -70,6 +73,10 @@ function validate() {
     return (error.value = "Aynan 2 ta o'zgaruvchi tanlang."), false;
   if (m === "friedman" && selected.value.length < 3)
     return (error.value = "Kamida 3 ta o'zgaruvchi (o'lchov) tanlang."), false;
+  if ((m === "crosstab" || m === "fisher") && selected.value.length !== 2)
+    return (error.value = "Aynan 2 ta o'zgaruvchi tanlang."), false;
+  if (m === "chi_gof" && selected.value.length !== 1)
+    return (error.value = "Aynan 1 ta o'zgaruvchi tanlang."), false;
   if (m === "partial_correlation") {
     if (selected.value.length < 2) return (error.value = "Kamida 2 ta o'zgaruvchi tanlang."), false;
     if (controls.value.length < 1) return (error.value = "Kamida 1 ta nazorat o'zgaruvchisi tanlang."), false;
@@ -86,7 +93,8 @@ async function run() {
   if (m === "correlation") { params.variables = selected.value; params.method = corrMethod.value; }
   else if (m === "reliability") params.items = selected.value;
   else if (m === "normality") { params.variables = selected.value; params.method = normMethod.value; }
-  else if (["ttest_paired", "wilcoxon", "friedman"].includes(m)) params.variables = selected.value;
+  else if (["ttest_paired", "wilcoxon", "friedman", "crosstab", "chi_gof", "fisher"].includes(m))
+    params.variables = selected.value;
   else if (m === "partial_correlation") {
     params.variables = selected.value.filter((v) => !controls.value.includes(v));
     params.control = controls.value;
