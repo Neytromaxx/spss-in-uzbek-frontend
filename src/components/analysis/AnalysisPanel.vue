@@ -36,16 +36,21 @@ const METHODS = [
   { key: "crosstab", label: "Kesishma jadvali + xi-kvadrat" },
   { key: "chi_gof", label: "Xi-kvadrat moslik testi" },
   { key: "fisher", label: "Fisher aniq testi (2×2)" },
+  { key: "regression_linear", label: "Chiziqli regressiya" },
 ];
 
 const needsVars = computed(() =>
   ["correlation", "reliability", "partial_correlation", "normality",
-   "ttest_paired", "wilcoxon", "friedman", "crosstab", "chi_gof", "fisher"].includes(method.value)
+   "ttest_paired", "wilcoxon", "friedman", "crosstab", "chi_gof", "fisher",
+   "regression_linear"].includes(method.value)
 );
 const needsControls = computed(() => method.value === "partial_correlation");
 const needsDepGroup = computed(() =>
   ["ttest_ind", "anova_oneway", "mannwhitney", "kruskal"].includes(method.value)
 );
+// regressiya: bog'liq (scale) select + predictorlar checkbox
+const isRegression = computed(() => method.value === "regression_linear");
+const varsLabel = computed(() => (isRegression.value ? "Mustaqil o'zgaruvchilar" : "O'zgaruvchilar"));
 
 // metod o'zgarganda tanlovlarni tozalaymiz
 watch(method, () => {
@@ -83,6 +88,11 @@ function validate() {
   }
   if (needsDepGroup.value && (!dependent.value || !groupVar.value))
     return (error.value = "Bog'liq va guruhlovchi o'zgaruvchini tanlang."), false;
+  if (m === "regression_linear") {
+    if (!dependent.value) return (error.value = "Bog'liq o'zgaruvchini tanlang."), false;
+    if (selected.value.length < 1)
+      return (error.value = "Kamida 1 ta mustaqil o'zgaruvchi tanlang."), false;
+  }
   return true;
 }
 
@@ -101,6 +111,9 @@ async function run() {
   } else if (["ttest_ind", "anova_oneway", "mannwhitney", "kruskal"].includes(m)) {
     params.dependent = dependent.value;
     params.group = groupVar.value;
+  } else if (m === "regression_linear") {
+    params.dependent = dependent.value;
+    params.predictors = selected.value;
   }
   try {
     await store.dispatch("editor/analyze", { type: m, params });
@@ -141,13 +154,17 @@ defineExpose({ run });
       </div>
     </template>
 
-    <!-- Bog'liq + guruhlovchi (t-test, ANOVA) -->
-    <template v-if="needsDepGroup">
+    <!-- Bog'liq o'zgaruvchi (t-test, ANOVA, regressiya) -->
+    <template v-if="needsDepGroup || isRegression">
       <label class="lbl">Bog'liq o'zgaruvchi (raqamli)</label>
       <select v-model="dependent">
         <option value="">— tanlang —</option>
         <option v-for="v in scaleVars" :key="v.name" :value="v.name">{{ v.label || v.name }}</option>
       </select>
+    </template>
+
+    <!-- Guruhlovchi (t-test, ANOVA) -->
+    <template v-if="needsDepGroup">
       <label class="lbl">Guruhlovchi o'zgaruvchi</label>
       <select v-model="groupVar">
         <option value="">— tanlang —</option>
@@ -157,7 +174,7 @@ defineExpose({ run });
 
     <!-- O'zgaruvchi tanlash -->
     <template v-if="needsVars">
-      <label class="lbl">O'zgaruvchilar</label>
+      <label class="lbl">{{ varsLabel }}</label>
       <div class="var-list">
         <label v-for="v in variables" :key="v.name" class="var-chk">
           <input type="checkbox" :value="v.name" v-model="selected" />
