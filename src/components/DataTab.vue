@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, onBeforeUnmount } from "vue";
+import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 
 const store = useStore();
@@ -9,6 +9,33 @@ const store = useStore();
 ================================ */
 const variables = computed(() => store.state.editor.schema.variables);
 const rows = computed(() => store.state.editor.rows);
+
+/* ===============================
+   CSV IMPORT
+================================ */
+const fileInput = ref(null);
+const importing = ref(false);
+const importMsg = ref("");
+
+function pickCsv() {
+  importMsg.value = "";
+  fileInput.value?.click();
+}
+
+async function onCsvChosen(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  importing.value = true;
+  try {
+    await store.dispatch("editor/importCsv", file);
+    importMsg.value = "✓ CSV yuklandi";
+  } catch (err) {
+    importMsg.value = err.response?.data?.detail || "CSV yuklashda xatolik";
+  } finally {
+    importing.value = false;
+    e.target.value = "";
+  }
+}
 
 /* ===============================
    ADD ROW (EXPOSED)
@@ -71,7 +98,20 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="data-tab">
-    <h3>Ma’lumotlar ({{ rows.length }} qator)</h3>
+    <div class="dt-head">
+      <h3>Ma’lumotlar ({{ rows.length }} qator)</h3>
+      <button class="csv-btn" :disabled="importing" @click="pickCsv">
+        {{ importing ? "Yuklanmoqda…" : "📁 CSV yuklash" }}
+      </button>
+      <input
+        ref="fileInput"
+        type="file"
+        accept=".csv,text/csv"
+        style="display: none"
+        @change="onCsvChosen"
+      />
+    </div>
+    <p v-if="importMsg" class="csv-msg">{{ importMsg }}</p>
 
     <div v-if="variables.length === 0" class="empty">
       Avval o‘zgaruvchilarni yarating
@@ -148,6 +188,26 @@ onBeforeUnmount(() => {
 .data-tab h3 {
   font-family: 'Instrument Serif', serif;
   font-size: 1.5rem;
+}
+.dt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.csv-btn {
+  background: var(--s3);
+  border: 1px solid var(--bd);
+  color: var(--t1);
+  border-radius: var(--r3);
+  padding: 8px 14px;
+  font-size: .82rem;
+  white-space: nowrap;
+}
+.csv-msg {
+  font-size: .8rem;
+  color: var(--a3);
+  margin: 0;
 }
 
 .table-wrapper {
