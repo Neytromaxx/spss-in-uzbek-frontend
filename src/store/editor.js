@@ -234,6 +234,18 @@ export default {
       }
     },
 
+    // CSV faylni yuklab, sxema va qatorlarni to'ldirish
+    async importCsv({ state, dispatch }, file) {
+      if (!state.file) return;
+      const form = new FormData();
+      form.append("file", file);
+      await api.post(`/files/${state.file.id}/import:csv`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      // faylni qayta ochamiz (yangi sxema + qatorlar)
+      await dispatch("open", state.file.id);
+    },
+
     // Natijani profilga saqlash (oxirgi tanlangan metod bilan; login talab)
     async saveResult({ state, dispatch }) {
       if (!state.file) return;
