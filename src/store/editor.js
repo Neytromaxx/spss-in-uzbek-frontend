@@ -261,15 +261,19 @@ export default {
     async exportResult({ state }, { fmt, deliver = "browser" }) {
       if (!state.file) return;
 
+      // oxirgi tanlangan metod va parametrlarini eksportga uzatamiz
+      const type = state.result?.type || "auto";
+      const params = JSON.stringify(state.result?.params || {});
+
       if (deliver === "telegram") {
         const res = await api.get(`/analyze/files/${state.file.id}/export`, {
-          params: { fmt, deliver: "telegram" },
+          params: { fmt, deliver: "telegram", type, params },
         });
         return res.data; // { ok, delivered: "telegram" }
       }
 
       const res = await api.get(`/analyze/files/${state.file.id}/export`, {
-        params: { fmt, deliver: "browser" },
+        params: { fmt, deliver: "browser", type, params },
         responseType: "blob",
       });
       const url = URL.createObjectURL(res.data);
