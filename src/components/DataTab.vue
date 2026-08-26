@@ -2,6 +2,8 @@
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 
+import ImportPreview from "./ImportPreview.vue";
+
 const store = useStore();
 
 /* ===============================
@@ -11,29 +13,77 @@ const variables = computed(() => store.state.editor.schema.variables);
 const rows = computed(() => store.state.editor.rows);
 
 /* ===============================
-   CSV IMPORT
+   FAYLDAN O'QISH (CSV / Excel)
+
+   🔴 IKKI BOSQICH: avval ko'rsatiladi, keyin yoziladi.
+   Import barcha qatorlarni almashtiradi — tasodifan bosilgan
+   tugma ishni o'chirib yuborardi.
 ================================ */
 const fileInput = ref(null);
 const importing = ref(false);
 const importMsg = ref("");
 
-function pickCsv() {
+// Ko'rish oynasi: backend javobi va tanlangan fayl
+const preview = ref(null);
+const pendingFile = ref(null);
+const pendingSheet = ref(null);
+
+function pickFile() {
   importMsg.value = "";
   fileInput.value?.click();
 }
 
-async function onCsvChosen(e) {
+async function onFileChosen(e) {
   const file = e.target.files?.[0];
+  e.target.value = "";
   if (!file) return;
+
+  pendingFile.value = file;
+  pendingSheet.value = null;
+  await loadPreview();
+}
+
+async function loadPreview() {
   importing.value = true;
   try {
-    await store.dispatch("editor/importCsv", file);
-    importMsg.value = "✓ CSV yuklandi";
+    preview.value = await store.dispatch("editor/parseImport", {
+      file: pendingFile.value,
+      sheet: pendingSheet.value,
+    });
   } catch (err) {
-    importMsg.value = err.response?.data?.detail || "CSV yuklashda xatolik";
+    preview.value = null;
+    pendingFile.value = null;
+    importMsg.value = err.response?.data?.detail || "Faylni o'qib bo'lmadi";
   } finally {
     importing.value = false;
-    e.target.value = "";
+  }
+}
+
+// Excel faylida bir nechta varaq bo'lsa — boshqasini tanlash
+async function onSheetChange(sheet) {
+  pendingSheet.value = sheet;
+  await loadPreview();
+}
+
+function cancelImport() {
+  preview.value = null;
+  pendingFile.value = null;
+  pendingSheet.value = null;
+}
+
+async function confirmImport() {
+  importing.value = true;
+  try {
+    const natija = await store.dispatch("editor/applyImport", {
+      file: pendingFile.value,
+      sheet: pendingSheet.value,
+    });
+    importMsg.value = `✓ ${natija.rows} qator, ${natija.variables} ustun yuklandi`;
+    cancelImport();
+  } catch (err) {
+    importMsg.value = err.response?.data?.detail || "Yozishda xatolik";
+  } finally {
+    importing.value = false;
   }
 }
 
@@ -100,18 +150,27 @@ onBeforeUnmount(() => {
   <div class="data-tab">
     <div class="dt-head">
       <h3>Ma’lumotlar ({{ rows.length }} qator)</h3>
-      <button class="csv-btn" :disabled="importing" @click="pickCsv">
-        {{ importing ? "Yuklanmoqda…" : "📁 CSV yuklash" }}
+      <button class="csv-btn" :disabled="importing" @click="pickFile">
+        {{ importing ? "O‘qilmoqda…" : "📁 Fayl yuklash" }}
       </button>
       <input
         ref="fileInput"
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,.xlsx,.xlsm,text/csv"
         style="display: none"
-        @change="onCsvChosen"
+        @change="onFileChosen"
       />
     </div>
     <p v-if="importMsg" class="csv-msg">{{ importMsg }}</p>
+
+    <ImportPreview
+      v-if="preview"
+      :preview="preview"
+      :busy="importing"
+      @confirm="confirmImport"
+      @cancel="cancelImport"
+      @sheet="onSheetChange"
+    />
 
     <div v-if="variables.length === 0" class="empty">
       Avval o‘zgaruvchilarni yarating
@@ -146,9 +205,13 @@ onBeforeUnmount(() => {
                 @input="updateCell(rIndex, v.name, $event.target.value)"
               />
 
-              <!-- NOMINAL / ORDINAL -->
+              <!-- NOMINAL / ORDINAL — QIYMAT YORLIQLARI BO'LSA.
+                   🔴 Yorliqsiz ustunda ro'yxat BO'SH bo'ladi va
+                   ma'lumot ko'rinmay qoladi. Fayldan o'qilgan matn
+                   ustunlarida (ism, shahar) yorliq bo'lmaydi —
+                   ular oddiy matn maydoni bilan ko'rsatiladi. -->
               <select
-                v-else
+                v-else-if="v.values && Object.keys(v.values).length"
                 :value="row[v.name]"
                 @change="updateCell(rIndex, v.name, $event.target.value)"
               >
@@ -161,6 +224,14 @@ onBeforeUnmount(() => {
                   {{ label }}
                 </option>
               </select>
+
+              <!-- YORLIQSIZ MATN USTUNI -->
+              <input
+                v-else
+                type="text"
+                :value="row[v.name]"
+                @input="updateCell(rIndex, v.name, $event.target.value)"
+              />
             </td>
 
             <td>

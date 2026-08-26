@@ -51,4 +51,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Testlar: `npm test`. PWA plagini test rejimida ishlamaydi —
+  // u xizmat ishchisi yasaydi, testga esa faqat komponent kerak.
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.spec.js'],
+  },
 })

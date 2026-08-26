@@ -234,16 +234,39 @@ export default {
       }
     },
 
-    // CSV faylni yuklab, sxema va qatorlarni to'ldirish
-    async importCsv({ state, dispatch }, file) {
-      if (!state.file) return;
+    // ── Fayldan qiymatlarni o'qish ──
+    //
+    // 🔴 IKKI BOSQICH: avval KO'RISH, keyin YOZISH.
+    //
+    // Import mavjud o'zgaruvchilar va barcha qatorlarni almashtiradi.
+    // Ilgari bu so'ramasdan bajarilardi — tasodifan bosilgan tugma
+    // bir necha soatlik ishni o'chirib yuborardi.
+    //
+    // Fayl ikki marta yuboriladi (ko'rish + tasdiqlash). Chegara
+    // 5 MB bo'lgani uchun bu arzon va server holatsiz qoladi:
+    // vaqtinchalik saqlash yoki kesh kerak emas.
+    async parseImport({ state }, { file, sheet = null }) {
+      if (!state.file) return null;
       const form = new FormData();
       form.append("file", file);
-      await api.post(`/files/${state.file.id}/import:csv`, form, {
+      if (sheet) form.append("sheet", sheet);
+      const res = await api.post(`/files/${state.file.id}/import:parse`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return res.data;
+    },
+
+    async applyImport({ state, dispatch }, { file, sheet = null }) {
+      if (!state.file) return null;
+      const form = new FormData();
+      form.append("file", file);
+      if (sheet) form.append("sheet", sheet);
+      const res = await api.post(`/files/${state.file.id}/import:apply`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       // faylni qayta ochamiz (yangi sxema + qatorlar)
       await dispatch("open", state.file.id);
+      return res.data;
     },
 
     // Natijani profilga saqlash (oxirgi tanlangan metod bilan; login talab)
