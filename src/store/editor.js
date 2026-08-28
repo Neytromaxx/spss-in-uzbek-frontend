@@ -15,11 +15,15 @@ export default {
 
     rows: [],
 
-    // BACKEND FORMATGA MOS
+    // BACKEND FORMATGA MOS — shakli `SET_RESULT` bilan bir xil bo'lsin,
+    // aks holda komponentlar `undefined` bilan ishlashga majbur bo'ladi.
     result: {
       type: null,
       params: null,
+      title: null,
+      meta: null,
       columns: {},
+      tables: [],
     },
 
     saving: false,
@@ -47,12 +51,32 @@ export default {
     },
 
     SET_RESULT(state, payload) {
-      // payload = AnalyzeResponse. Backend endi kanonik sxema (tables)
-      // qaytaradi; ustunli ko'rinish vaqtincha legacy_columns'dan olinadi.
+      // payload = AnalyzeResponse: { type, params, result }.
+      // `result` — kanonik sxema: { analysis, title, tables, meta }.
+      // Ustunli ko'rinish vaqtincha legacy_columns'dan olinadi.
+      //
+      // 🔴 `title` va `meta` NI TASHLAB YUBORMAYMIZ.
+      //
+      // Ilgari bu yerda faqat type/params/columns/tables olinardi va
+      // ikkita narsa jimgina yo'qolardi:
+      //
+      //   1. `title` — ResultsTab uni ko'rsatmoqchi bo'lardi, lekin u
+      //      hech qachon kelmagani uchun DOIM "Tahlil natijasi" zaxira
+      //      matni chiqardi. Ya'ni "Chiziqli regressiya" ham,
+      //      "Kruskal-Uollis H testi" ham bir xil ko'rinardi.
+      //
+      //   2. `meta.warnings` va `meta.assumptions` — backend ularni
+      //      to'ldiradi (correlation.py, normality.py, regression.py,
+      //      categorical.py). Bular statistikada bezak emas: masalan
+      //      kategorik tahlilda "kutilgan chastota 5 dan kichik"
+      //      ogohlantirishi natijani ishonchsiz qiladi. Foydalanuvchi
+      //      buni umuman ko'rmasdi.
       const r = payload.result || {};
       state.result = {
         type: payload.type ?? null,
         params: payload.params ?? null,
+        title: r.title ?? null,
+        meta: r.meta ?? null,
         columns: r.legacy_columns?.columns ?? r.columns ?? {},
         tables: r.tables ?? [],
       };
@@ -78,7 +102,10 @@ export default {
       state.file = null;
       state.schema = { variables: [] };
       state.rows = [];
-      state.result = { type: null, params: null, columns: {} };
+      state.result = {
+        type: null, params: null, title: null, meta: null,
+        columns: {}, tables: [],
+      };
       state.saved = true;
       state.analyzing = false;
     },
