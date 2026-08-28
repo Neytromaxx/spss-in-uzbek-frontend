@@ -25,6 +25,10 @@ function javob(qismlar = {}) {
       title: "Kesishma jadvali va xi-kvadrat testi",
       variables: ["a", "b"],
       tables: [{ id: "ct", title: "Kesishma jadvali", columns: [], rows: [], notes: [] }],
+      charts: [
+        { id: "bar_crosstab", kind: "bar", title: "a × b",
+          categories: ["Ha", "Yo'q"], counts: [5, 3] },
+      ],
       meta: {
         methods_shown: [],
         alpha: 0.05,
@@ -60,6 +64,15 @@ describe("SET_RESULT", () => {
     expect(s.result.params).toEqual({ variables: ["a", "b"] });
   });
 
+  it("grafiklarni saqlaydi", () => {
+    // Grafiklar `tables` bilan bir xil yo'ldan keladi; biri tushib
+    // qolsa ikkinchisi ham tushib qolgan bo'lishi mumkin.
+    const s = stateFactory();
+    mutations.SET_RESULT(s, javob());
+    expect(s.result.charts).toHaveLength(1);
+    expect(s.result.charts[0].kind).toBe("bar");
+  });
+
   it("jadvallarni saqlaydi", () => {
     const s = stateFactory();
     mutations.SET_RESULT(s, javob());
@@ -77,6 +90,7 @@ describe("SET_RESULT", () => {
     const s = stateFactory();
     mutations.SET_RESULT(s, {});
     expect(s.result.tables).toEqual([]);
+    expect(s.result.charts).toEqual([]);
     expect(s.result.columns).toEqual({});
     expect(s.result.title).toBeNull();
     expect(s.result.meta).toBeNull();
@@ -86,7 +100,7 @@ describe("SET_RESULT", () => {
 describe("natija holatining shakli", () => {
   // Boshlang'ich holat, RESET va SET_RESULT bir xil kalitlarni bersin —
   // aks holda komponentlar ba'zan `undefined` bilan ishlashga majbur.
-  const kutilgan = ["type", "params", "title", "meta", "columns", "tables"];
+  const kutilgan = ["type", "params", "title", "meta", "columns", "tables", "charts"];
 
   it("boshlang'ich holatda hamma kalit bor", () => {
     expect(Object.keys(stateFactory().result).sort()).toEqual([...kutilgan].sort());

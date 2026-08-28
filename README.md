@@ -50,6 +50,7 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | `analysis-panel.spec.js` | Panel backend kutgan ANIQ parametr nomlarini yuborishi |
 | `dataset-import.spec.js` | Manbadan fayl yaratish amallari va rol getteri |
 | `dataset-modal.spec.js` | Import oynasi: kampaniya tanlash va bo'sh kampaniya himoyasi |
+| `result-chart.spec.js` | Backend grafik tavsifi -> Chart.js konfiguratsiyasi |
 
 Bu uchtasi tasodifiy tanlanmagan. Ular **yiqilmaydigan** xatolarni
 qo'riqlaydi — kod ishlaydi, lekin noto'g'ri yoki kam natija beradi:
@@ -63,6 +64,26 @@ qo'riqlaydi — kod ishlaydi, lekin noto'g'ri yoki kam natija beradi:
 > ⚠️ `analysis-panel.spec.js` dagi metodlar ro'yxati qo'lda yozilgan, chunki
 > u boshqa repodagi `engine.ANALYSES` ga tegishli. Backendga yangi metod
 > qo'shilsa, bu ro'yxatni ham yangilang.
+
+---
+
+## Grafiklar
+
+Tahlil natijalari jadval bilan birga grafik ham beradi: gistogramma,
+quti-diagramma, sochma va ustunli.
+
+🔴 **Statistika bu yerda hisoblanmaydi.** Binlar, kvartillar, mo'ylov
+chegaralari va regressiya chizig'i backenddan tayyor keladi
+(`app/modules/statistics/charts.py`). `ResultChart.vue` faqat chizadi.
+
+Sabab: ular statistik qaror va `pytest` bilan sinaladi. Bu yerda qayta
+hisoblansa ikkita manba paydo bo'lardi — jadvaldagi mediana boshqa,
+diagrammadagi boshqa bo'lib qolishi mumkin edi.
+
+Chizish uchun `chart.js` va quti-diagramma uchun
+`@sgratzl/chartjs-chart-boxplot`. Quti plagini xom sondan o'zi ham
+hisoblay oladi, lekin biz unga **tayyor statistikani** beramiz —
+uning kvartil usuli backenddagidan farq qilishi mumkin.
 
 ---
 
@@ -85,7 +106,7 @@ src/
 ├── api/          # axios klienti, xato matnini normallashtirish
 ├── assets/       # global uslublar
 ├── components/   # TopBar, tablar, LoginModal, DatasetImportModal
-│   └── analysis/ # AnalysisPanel, ResultTable, CellValue
+│   └── analysis/ # AnalysisPanel, ResultTable, CellValue, ResultChart
 ├── pages/        # FilesPage, EditorPage, InfoPage
 ├── router/
 └── store/        # Vuex: auth, files, editor
