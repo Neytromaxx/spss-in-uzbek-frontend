@@ -26,7 +26,7 @@ router.beforeEach(async (to) => {
     if (!store.state.editor.file || store.state.editor.file.id !== id) {
       try {
         await store.dispatch("editor/open", id);
-      } catch (e) {
+      } catch {
         return "/";
       }
     }

@@ -51,4 +51,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  test: {
+    // `jsdom` — komponent testlari uchun DOM kerak (@vue/test-utils).
+    environment: 'jsdom',
+    globals: true,
+    include: ['src/**/*.spec.js', 'tests/**/*.spec.js'],
+  },
 })

@@ -21,7 +21,7 @@ export default {
       try {
         const res = await api.get("/files");
         commit("SET_FILES", res.data);
-      } catch (e) {
+      } catch {
         // Anonim (loginsiz) yoki backend mavjud bo'lmasa — bo'sh ro'yxat.
         // Saqlangan tadqiqotlar login qilingandan keyin ko'rinadi.
         commit("SET_FILES", []);
