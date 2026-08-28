@@ -1,0 +1,70 @@
+# .github/workflows/ci.yml — lint + test + build.
+#
+# Uchta ish:
+#   lint   — eslint (flat config, `--max-warnings 0`)
+#   test   — vitest (store, utils va AnalysisPanel komponenti)
+#   build  — `vite build` haqiqatan yig'iladimi
+#
+# 🔴 NIMA UCHUN BU FAYL KECHIKIB QO'SHILDI
+#
+# Backendda CI boshidan bor edi (ruff + pytest + migratsiya + Docker),
+# frontendda esa umuman yo'q edi. Natijada ikkita xato ishlab chiqarishga
+# yetib bordi va faqat qo'lda audit paytida topildi:
+#
+#   1. Panel 16 ta metodni taklif qilardi, backend so'rov sxemasi esa
+#      faqat 3 tasini qabul qilardi (qolgani 422).
+#   2. `SET_RESULT` natija sarlavhasi va statistik ogohlantirishlarni
+#      jimgina tashlab yuborardi.
+#
+# Ikkalasi ham "yiqilmaydigan" xato edi: kod ishlaydi, shunchaki noto'g'ri
+# yoki kam natija beradi. Aynan shunday xatolarni testdan boshqa hech narsa
+# ushlamaydi.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Vercel'ga chiqishdan oldin yig'ilish albatta tekshirilsin:
+      # `.env` CI'da yo'q, shuning uchun `VITE_API_URL` shu yerda beriladi.
+      - run: npm run build
+        env:
+          VITE_API_URL: https://example.invalid

@@ -2,8 +2,10 @@
 import { computed } from "vue";
 
 const props = defineProps({
-  result: Object,
+  result: { type: Object, default: () => ({}) },
 });
+
+defineEmits(["remove"]);
 
 function fmt(value, digits = 3) {
   if (

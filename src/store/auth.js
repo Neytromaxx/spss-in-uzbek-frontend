@@ -52,7 +52,7 @@ export default {
         const res = await api.get("/auth/me");
         commit("SET_USER", res.data);
         commit("SET_METHOD", localStorage.getItem("auth_method") || null);
-      } catch (e) {
+      } catch {
         // token eskirgan
         dispatch("logout");
       }
@@ -63,7 +63,7 @@ export default {
       await api.post("/auth/email/request", { email });
     },
 
-    async verifyEmail({ commit, dispatch }, { email, code }) {
+    async verifyEmail({ dispatch }, { email, code }) {
       const res = await api.post("/auth/email/verify", { email, code });
       await dispatch("_completeLogin", { token: res.data.token, user: res.data.user, method: "email" });
     },
@@ -96,7 +96,7 @@ export default {
       commit("SET_METHOD", method);
       try {
         await api.post("/files/claim");
-      } catch (e) {
+      } catch {
         /* claim ixtiyoriy — xato bo'lsa ham login davom etadi */
       }
       // biriktirilgan fayllar ro'yxatini yangilaymiz
