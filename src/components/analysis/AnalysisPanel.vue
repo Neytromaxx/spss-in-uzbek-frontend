@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useStore } from "vuex";
+import { xatoMatni } from "../../api/errors";
 
 const store = useStore();
 
@@ -118,7 +119,7 @@ async function run() {
   try {
     await store.dispatch("editor/analyze", { type: m, params });
   } catch (e) {
-    error.value = e.response?.data?.detail || "Tahlilda xatolik";
+    error.value = xatoMatni(e, "Tahlilda xatolik");
   }
 }
 

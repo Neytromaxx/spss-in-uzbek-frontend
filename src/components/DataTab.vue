@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
+import { xatoMatni } from "../api/errors";
 
 const store = useStore();
 
@@ -30,7 +31,7 @@ async function onCsvChosen(e) {
     await store.dispatch("editor/importCsv", file);
     importMsg.value = "✓ CSV yuklandi";
   } catch (err) {
-    importMsg.value = err.response?.data?.detail || "CSV yuklashda xatolik";
+    importMsg.value = xatoMatni(err, "CSV yuklashda xatolik");
   } finally {
     importing.value = false;
     e.target.value = "";
