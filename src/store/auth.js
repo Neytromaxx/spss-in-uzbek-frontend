@@ -17,6 +17,14 @@ export default {
       if (u.first_name) return [u.first_name, u.last_name].filter(Boolean).join(" ");
       return u.email || u.telegram_id || "Foydalanuvchi";
     },
+
+    // Kutubxonachi yoki undan yuqori (backend: accounts/roles.py).
+    //
+    // Backenddagi `UserOut.role` izohi shuni talab qiladi: "Frontend
+    // interfeysni shu maydon bo'yicha yig'adi: rolga to'g'ri kelmaydigan
+    // tugmalar UMUMAN chizilmaydi." Ya'ni bu getter bilan tugma
+    // yashiriladi, foydalanuvchi 403 ga urilib ovora bo'lmaydi.
+    isLibrarian: (state) => ["librarian", "admin"].includes(state.user?.role),
   },
 
   mutations: {

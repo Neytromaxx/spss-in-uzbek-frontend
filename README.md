@@ -48,6 +48,8 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | `errors.spec.js` | Backend xatosining uch xil shakli o'qiladigan matnga aylanishi |
 | `editor-store.spec.js` | `SET_RESULT` natijadan hech qanday maydonni tashlab yubormasligi |
 | `analysis-panel.spec.js` | Panel backend kutgan ANIQ parametr nomlarini yuborishi |
+| `dataset-import.spec.js` | Manbadan fayl yaratish amallari va rol getteri |
+| `dataset-modal.spec.js` | Import oynasi: kampaniya tanlash va bo'sh kampaniya himoyasi |
 
 Bu uchtasi tasodifiy tanlanmagan. Ular **yiqilmaydigan** xatolarni
 qo'riqlaydi — kod ishlaydi, lekin noto'g'ri yoki kam natija beradi:
@@ -82,7 +84,7 @@ Uchalasini mahalliy ravishda ham xuddi shu tartibda yugurtirsa bo'ladi.
 src/
 ├── api/          # axios klienti, xato matnini normallashtirish
 ├── assets/       # global uslublar
-├── components/   # TopBar, tablar, LoginModal
+├── components/   # TopBar, tablar, LoginModal, DatasetImportModal
 │   └── analysis/ # AnalysisPanel, ResultTable, CellValue
 ├── pages/        # FilesPage, EditorPage, InfoPage
 ├── router/

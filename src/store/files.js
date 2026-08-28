@@ -36,5 +36,22 @@ export default {
       await api.delete(`/files/${id}`);
       commit("REMOVE_FILE", id);
     },
+
+    // Tahlilga uzatish mumkin bo'lgan manbalar (`core/datasets` registri).
+    // Bugun bitta: so'rovnoma kampaniyasi. Ro'yxat backenddan keladi,
+    // shuning uchun yangi manba qo'shilsa frontend o'zgarmaydi.
+    async datasetSources() {
+      const res = await api.get("/files/dataset-sources");
+      return res.data.sources || [];
+    },
+
+    // Boshqa moduldagi ma'lumotdan darhol SPSS fayli yaratadi.
+    // Sxemani (o'zgaruvchi turlarini) backend o'zi aniqlaydi — CSV
+    // importi bilan bir xil qoida bo'yicha.
+    async createFromDataset({ commit }, { source, ref, title }) {
+      const res = await api.post("/files/from-dataset", { source, ref, title });
+      commit("ADD_FILE", res.data);
+      return res.data;
+    },
   },
 };
