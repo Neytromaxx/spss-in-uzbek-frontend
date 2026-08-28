@@ -24,6 +24,7 @@ export default {
       meta: null,
       columns: {},
       tables: [],
+      charts: [],
     },
 
     saving: false,
@@ -77,6 +78,7 @@ export default {
         params: payload.params ?? null,
         title: r.title ?? null,
         meta: r.meta ?? null,
+        charts: r.charts ?? [],
         columns: r.legacy_columns?.columns ?? r.columns ?? {},
         tables: r.tables ?? [],
       };
@@ -104,7 +106,7 @@ export default {
       state.rows = [];
       state.result = {
         type: null, params: null, title: null, meta: null,
-        columns: {}, tables: [],
+        columns: {}, tables: [], charts: [],
       };
       state.saved = true;
       state.analyzing = false;
