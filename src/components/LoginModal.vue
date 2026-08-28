@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onUnmounted } from "vue";
 import { useStore } from "vuex";
+import { xatoMatni } from "../api/errors";
 
 const store = useStore();
 
@@ -55,7 +56,7 @@ async function sendCode() {
     await store.dispatch("auth/requestEmailCode", email.value.trim());
     codeSent.value = true;
   } catch (e) {
-    error.value = e.response?.data?.detail || "Kod yuborishda xatolik";
+    error.value = xatoMatni(e, "Kod yuborishda xatolik");
   } finally {
     busy.value = false;
   }
@@ -71,7 +72,7 @@ async function verifyCode() {
     });
     close();
   } catch (e) {
-    error.value = e.response?.data?.detail || "Kod noto'g'ri";
+    error.value = xatoMatni(e, "Kod noto'g'ri");
   } finally {
     busy.value = false;
   }
@@ -93,11 +94,11 @@ async function startTelegram() {
         if (ok) close();
       } catch (e) {
         stopPoll();
-        error.value = e.response?.data?.detail || "Telegram login muddati tugadi";
+        error.value = xatoMatni(e, "Telegram login muddati tugadi");
       }
     }, 2500);
   } catch (e) {
-    error.value = e.response?.data?.detail || "Telegram login boshlanmadi";
+    error.value = xatoMatni(e, "Telegram login boshlanmadi");
   } finally {
     busy.value = false;
   }
