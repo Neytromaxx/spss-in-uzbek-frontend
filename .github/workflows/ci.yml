@@ -41,7 +41,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  # 🔴 BITTA ISH, UCHTA EMAS.
+  #
+  # Ilgari `lint`, `test`, `build` alohida ishlar edi. Parallellik bu
+  # yerda hech narsa bermaydi — uchalasi birga 9 SONIYA ishlaydi — lekin
+  # GitHub har bir ishni ALOHIDA hisoblaydi va minimal birlik 1 daqiqa.
+  # Ya'ni 9 soniyalik ish uchun 3 daqiqa yozilardi.
+  #
+  # Repolar `private`, daqiqalar oylik kvotadan ketadi, shuning uchun
+  # bitta ishga yig'ildi: 3 daqiqa -> 1.
+  #
+  # Buyruq `npm run check` — mahalliy tekshiruv bilan AYNAN BIR XIL.
+  # Ikkita ro'yxat bo'lsa, ular vaqt o'tib ajralardi (loyihada bu
+  # allaqachon bir marta yuz bergan: `AnalysisType` va `ANALYSES`).
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,30 +63,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run lint
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - run: npm test
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      # Vercel'ga chiqishdan oldin yig'ilish albatta tekshirilsin:
-      # `.env` CI'da yo'q, shuning uchun `VITE_API_URL` shu yerda beriladi.
-      - run: npm run build
+      # `.env` CI'da yo'q, `vite build` esa `VITE_API_URL` ni kutadi.
+      - run: npm run check
         env:
           VITE_API_URL: https://example.invalid
