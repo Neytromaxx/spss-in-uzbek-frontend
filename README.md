@@ -36,6 +36,7 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | `npm run format` | Prettier bilan formatlash (ixtiyoriy) |
 | `npm test` | Vitest — bir marta yugurtiradi |
 | `npm run test:watch` | Vitest kuzatuv rejimida |
+| **`npm run check`** | **lint + test + build — commitdan oldin (~9 s)** |
 
 ---
 
@@ -89,7 +90,8 @@ uning kvartil usuli backenddagidan farq qilishi mumkin.
 
 ## CI
 
-`.github/workflows/ci.yml` uchta ishni bajaradi. **Ish branchini
+`.github/workflows/ci.yml` bitta ish bajaradi — `npm run check`, ya'ni
+mahalliy tekshiruv bilan **aynan bir xil buyruq**. **Ish branchini
 `pull_request` tekshiradi, `main` ni `push`** — ilgari ikkalasi ham
 yoqilgan edi va har bir commit ikki marta yugurtilardi.
 
@@ -102,11 +104,13 @@ yoqilgan edi va har bir commit ikki marta yugurtilardi.
 > (`**.md`) o'zgargan commit ham yugurtirmaydi.
 
 
-1. **lint** — `npm run lint`
-2. **test** — `npm test`
-3. **build** — `npm run build`
+Ilgari `lint`, `test`, `build` alohida uchta ish edi. Parallellik bu
+yerda hech narsa bermaydi (uchalasi birga 9 soniya), lekin GitHub har
+bir ishni alohida hisoblaydi va minimal birlik — 1 daqiqa. Ya'ni
+9 soniyalik tekshiruv uchun 3 daqiqa yozilardi. Endi 1.
 
-Uchalasini mahalliy ravishda ham xuddi shu tartibda yugurtirsa bo'ladi.
+Buyruq bitta joyda (`package.json` → `check`), shuning uchun mahalliy
+tekshiruv bilan CI ajralib keta olmaydi.
 
 ---
 
