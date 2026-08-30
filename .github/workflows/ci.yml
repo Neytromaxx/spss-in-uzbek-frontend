@@ -22,10 +22,19 @@
 
 name: CI
 
+# 🔴 `push` FAQAT `main` DA — backend `ci.yml` dagi bilan bir xil sabab.
+#
+# Ilgari har bir commit ikki marta tekshirilardi (`push` + `pull_request`).
+# Repolar `private`, ya'ni Actions daqiqalari oylik kvotadan ketadi va
+# kvota tugagach barcha ishlar logsiz yiqila boshladi.
+#
+# ⚠️ PR ochilmagan branchga push CI yugurtirmaydi.
 on:
   push:
-    branches: ['**']
+    branches: [main]
+    paths-ignore: ['**.md', 'LICENSE']
   pull_request:
+    paths-ignore: ['**.md', 'LICENSE']
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -89,7 +89,18 @@ uning kvartil usuli backenddagidan farq qilishi mumkin.
 
 ## CI
 
-`.github/workflows/ci.yml` har bir push va PR'da uchta ishni bajaradi:
+`.github/workflows/ci.yml` uchta ishni bajaradi. **Ish branchini
+`pull_request` tekshiradi, `main` ni `push`** — ilgari ikkalasi ham
+yoqilgan edi va har bir commit ikki marta yugurtilardi.
+
+> Repolar `private`, ya'ni Actions daqiqalari hisobning oylik
+> kvotasidan ketadi. Kvota tugagach barcha ishlar **logsiz, bir
+> soniyada** yiqila boshlaydi — buni "kod buzildi" deb o'ylash oson;
+> shubha tug'ilsa avval billing sahifasini ko'ring.
+>
+> ⚠️ **PR ochilmagan branchga push CI yugurtirmaydi.** Faqat hujjat
+> (`**.md`) o'zgargan commit ham yugurtirmaydi.
+
 
 1. **lint** — `npm run lint`
 2. **test** — `npm test`
