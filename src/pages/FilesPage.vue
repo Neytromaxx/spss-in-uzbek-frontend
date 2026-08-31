@@ -2,16 +2,22 @@
 import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
+import DatasetImportModal from "../components/DatasetImportModal.vue";
 
 const store = useStore();
 const router = useRouter();
 
 const creating = ref(false);
 const newTitle = ref("");
+const importVisible = ref(false);
 
 const files = computed(() => store.state.files.list);
 const isAuth = computed(() => store.getters["auth/isAuthenticated"]);
 const displayName = computed(() => store.getters["auth/displayName"]);
+// Manbadan import faqat kutubxonachi va undan yuqorida: `load_campaign`
+// aynan shu rolni talab qiladi. Rolsiz foydalanuvchiga tugma
+// ko'rsatilsa, u 403 ga urilardi.
+const isLibrarian = computed(() => store.getters["auth/isLibrarian"]);
 
 function openLogin() {
   store.commit("auth/SET_LOGIN_VISIBLE", true);
@@ -43,6 +49,11 @@ function cancelCreate() {
 
 function openFile(id) {
   router.push(`/files/${id}`);
+}
+
+function onImported(file) {
+  importVisible.value = false;
+  router.push(`/files/${file.id}`);
 }
 </script>
 
@@ -80,9 +91,12 @@ function openFile(id) {
 
       <!-- CREATE -->
       <div class="create-box">
-        <button v-if="!creating" class="primary" @click="startCreate">
-          + Yangi tadqiqot
-        </button>
+        <template v-if="!creating">
+          <button class="primary" @click="startCreate">+ Yangi tadqiqot</button>
+          <button v-if="isLibrarian" class="from-source" @click="importVisible = true">
+            📥 So'rovnoma ma'lumotidan
+          </button>
+        </template>
         <div v-else class="create-inline">
           <input
             v-model="newTitle"
@@ -113,6 +127,12 @@ function openFile(id) {
         <p>Hali tadqiqot yo'q. Yangi tadqiqot yaratib boshlang.</p>
       </div>
     </div>
+
+    <DatasetImportModal
+      :visible="importVisible"
+      @close="importVisible = false"
+      @created="onImported"
+    />
   </div>
 </template>
 
@@ -220,6 +240,9 @@ function openFile(id) {
   line-height: 1.75;
   max-width: 520px;
   margin: 0 auto;
+}
+.from-source {
+  margin-left: 8px;
 }
 .create-box {
   display: flex;
