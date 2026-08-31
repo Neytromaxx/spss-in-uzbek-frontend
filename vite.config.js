@@ -51,10 +51,14 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Testlar: `npm test`. PWA plagini test rejimida ishlamaydi —
+  // u xizmat ishchisi yasaydi, testga esa faqat komponent kerak.
   test: {
     // `jsdom` — komponent testlari uchun DOM kerak (@vue/test-utils).
     environment: 'jsdom',
     globals: true,
+    // Ikkala joy ham: komponent testlari `src/` yonida, store va
+    // shartnoma testlari `tests/` da.
     include: ['src/**/*.spec.js', 'tests/**/*.spec.js'],
   },
 })
