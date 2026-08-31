@@ -14,7 +14,35 @@ import { xatoMatni } from "../api/errors";
 // chaqirmasdi: kod yozilgan, testlar bor, foydalanuvchi uchun esa
 // mavjud emas edi.
 
-const SURVEY_KEY = "survey_campaign";
+// 🔴 KAMPANIYAGA TAYANADIGAN MANBALAR.
+//
+// Backend registrida uchtasi bor va uchalasi ham `ref` sifatida
+// KAMPANIYA id yoki slug'ini oladi:
+//
+//   survey_campaign          bir qator = bir respondent
+//   survey_campaign_timing   bir qator = bir respondent × bir band
+//   survey_campaign_journal  bir qator = bitta harakat
+//
+// Ilgari bu yerda faqat birinchisi tanilardi, qolgan ikkitasi
+// "noma'lum manba" bo'lib, kampaniya tanlagichi o'rniga bo'sh matn
+// maydoni chiqardi — tadqiqotchi id ni qo'lda ko'chirishi kerak edi.
+//
+// Aniq ro'yxat emas, PREFIKS ishlatiladi: registr backendda va u
+// yana o'sishi mumkin. To'rtinchi `survey_campaign_*` manba
+// qo'shilsa, bu fayl o'zgarmasdan ishlaydi.
+const KAMPANIYA_PREFIKSI = "survey_campaign";
+
+// 🔴 JURNAL YAKUNLANGAN ISHTIROK TALAB QILMAYDI.
+//
+// `load_campaign` va `load_timing` `finished_only=True` bilan
+// ishlaydi, `load_journal` esa YO'Q — uning izohi buni ochiq
+// aytadi: "Yarim qolgan sessiyalar ham kiradi... tashlab ketilgan
+// ishtirok bunga eng ko'p ma'lumot beradi."
+//
+// Ya'ni jurnal aynan tashlab ketilgan kampaniyada eng qimmatli, va
+// `finished_count` bo'yicha to'sish uni eng kerakli paytda
+// bloklardi.
+const JURNAL_KEY = "survey_campaign_journal";
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -35,16 +63,29 @@ const error = ref("");
 // Kampaniya tanlovi faqat so'rovnoma manbasi uchun. Boshqa manba
 // qo'shilsa (registr ochiq), oddiy matn maydoni ko'rsatiladi — ya'ni
 // yangi manba frontendni buzmaydi, shunchaki qulayligi kamroq bo'ladi.
-const isSurvey = computed(() => source.value === SURVEY_KEY);
+const isSurvey = computed(() => (source.value || "").startsWith(KAMPANIYA_PREFIKSI));
+
+// Jurnal boshlangan sessiyalarga, qolganlari yakunlanganlariga qaraydi.
+// Ro'yxatda ham AYNAN SHU sanoq ko'rsatiladi: "12 ta yakunlangan"
+// deb turgan kampaniya jurnal manbasida ishlamay qolsa, sabab
+// ko'rinmasdi.
+const sanoqKaliti = computed(() =>
+  source.value === JURNAL_KEY ? "session_count" : "finished_count"
+);
+const sanoqMatni = computed(() =>
+  source.value === JURNAL_KEY ? "boshlangan" : "yakunlangan"
+);
 
 const selectedCampaign = computed(() =>
   campaigns.value.find((k) => k.id === selectedRef.value)
 );
 
-// `load_campaign` faqat YAKUNLANGAN ishtiroklarni oladi
-// (`finished_only=True`). Nol bo'lsa backend 400 qaytaradi, shuning
-// uchun tanlashga ruxsat bermaymiz va sababini aytamiz.
-const bosLangan = computed(() => selectedCampaign.value?.finished_count === 0);
+// Manba talab qiladigan sanoq nol bo'lsa, backend 400 qaytaradi
+// ("Manbada tahlil qilinadigan ma'lumot yo'q") — shuning uchun
+// tanlashga oldindan ruxsat bermaymiz va sababini aytamiz.
+const bosLangan = computed(
+  () => selectedCampaign.value?.[sanoqKaliti.value] === 0
+);
 
 const yuborishMumkin = computed(
   () => !!source.value && !!selectedRef.value.trim() && !bosLangan.value && !busy.value
@@ -90,9 +131,9 @@ watch(
   }
 );
 
-watch(source, (v) => {
+watch(source, () => {
   selectedRef.value = "";
-  if (v === SURVEY_KEY) kampaniyalarniYuklash();
+  if (isSurvey.value) kampaniyalarniYuklash();
 });
 
 async function yaratish() {
@@ -145,7 +186,7 @@ async function yaratish() {
               <span class="c-title">{{ k.title }}</span>
               <span class="c-sub">
                 {{ k.instrument?.name || "—" }} ·
-                {{ k.finished_count }} ta yakunlangan
+                {{ k[sanoqKaliti] }} ta {{ sanoqMatni }}
                 <span v-if="!k.is_open" class="c-closed">· yopiq</span>
               </span>
             </span>
@@ -165,8 +206,8 @@ async function yaratish() {
       </template>
 
       <p v-if="bosLangan" class="warn">
-        Bu kampaniyada hali yakunlangan ishtirok yo'q — tahlil qilinadigan
-        ma'lumot topilmaydi.
+        Bu kampaniyada hali {{ sanoqMatni }} ishtirok yo'q — tahlil
+        qilinadigan ma'lumot topilmaydi.
       </p>
       <p v-if="error" class="err">{{ error }}</p>
 
