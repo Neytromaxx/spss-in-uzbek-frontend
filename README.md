@@ -50,7 +50,7 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | `editor-store.spec.js` | `SET_RESULT` natijadan hech qanday maydonni tashlab yubormasligi |
 | `analysis-panel.spec.js` | Panel backend kutgan ANIQ parametr nomlarini yuborishi |
 | `dataset-import.spec.js` | Manbadan fayl yaratish amallari va rol getteri |
-| `dataset-modal.spec.js` | Import oynasi: kampaniya tanlash va bo'sh kampaniya himoyasi |
+| `dataset-modal.spec.js` | Import oynasi: uchta manba, kampaniya tanlash, bo'sh kampaniya himoyasi |
 | `result-chart.spec.js` | Backend grafik tavsifi -> Chart.js konfiguratsiyasi |
 
 Bu uchtasi tasodifiy tanlanmagan. Ular **yiqilmaydigan** xatolarni
