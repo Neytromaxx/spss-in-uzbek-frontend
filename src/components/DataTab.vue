@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
+import { xatoMatni } from "../api/errors";
 
 import ImportPreview from "./ImportPreview.vue";
 
@@ -53,7 +54,7 @@ async function loadPreview() {
   } catch (err) {
     preview.value = null;
     pendingFile.value = null;
-    importMsg.value = err.response?.data?.detail || "Faylni o'qib bo'lmadi";
+    importMsg.value = xatoMatni(err, "Faylni o'qib bo'lmadi");
   } finally {
     importing.value = false;
   }
@@ -81,7 +82,7 @@ async function confirmImport() {
     importMsg.value = `✓ ${natija.rows} qator, ${natija.variables} ustun yuklandi`;
     cancelImport();
   } catch (err) {
-    importMsg.value = err.response?.data?.detail || "Yozishda xatolik";
+    importMsg.value = xatoMatni(err, "Yozishda xatolik");
   } finally {
     importing.value = false;
   }

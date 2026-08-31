@@ -1,0 +1,69 @@
+# .github/workflows/ci.yml — lint + test + build.
+#
+# Uchta ish:
+#   lint   — eslint (flat config, `--max-warnings 0`)
+#   test   — vitest (store, utils va AnalysisPanel komponenti)
+#   build  — `vite build` haqiqatan yig'iladimi
+#
+# 🔴 NIMA UCHUN BU FAYL KECHIKIB QO'SHILDI
+#
+# Backendda CI boshidan bor edi (ruff + pytest + migratsiya + Docker),
+# frontendda esa umuman yo'q edi. Natijada ikkita xato ishlab chiqarishga
+# yetib bordi va faqat qo'lda audit paytida topildi:
+#
+#   1. Panel 16 ta metodni taklif qilardi, backend so'rov sxemasi esa
+#      faqat 3 tasini qabul qilardi (qolgani 422).
+#   2. `SET_RESULT` natija sarlavhasi va statistik ogohlantirishlarni
+#      jimgina tashlab yuborardi.
+#
+# Ikkalasi ham "yiqilmaydigan" xato edi: kod ishlaydi, shunchaki noto'g'ri
+# yoki kam natija beradi. Aynan shunday xatolarni testdan boshqa hech narsa
+# ushlamaydi.
+
+name: CI
+
+# 🔴 `push` FAQAT `main` DA — backend `ci.yml` dagi bilan bir xil sabab.
+#
+# Ilgari har bir commit ikki marta tekshirilardi (`push` + `pull_request`).
+# Repolar `private`, ya'ni Actions daqiqalari oylik kvotadan ketadi va
+# kvota tugagach barcha ishlar logsiz yiqila boshladi.
+#
+# ⚠️ PR ochilmagan branchga push CI yugurtirmaydi.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'LICENSE']
+  pull_request:
+    paths-ignore: ['**.md', 'LICENSE']
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 🔴 BITTA ISH, UCHTA EMAS.
+  #
+  # Ilgari `lint`, `test`, `build` alohida ishlar edi. Parallellik bu
+  # yerda hech narsa bermaydi — uchalasi birga 9 SONIYA ishlaydi — lekin
+  # GitHub har bir ishni ALOHIDA hisoblaydi va minimal birlik 1 daqiqa.
+  # Ya'ni 9 soniyalik ish uchun 3 daqiqa yozilardi.
+  #
+  # Repolar `private`, daqiqalar oylik kvotadan ketadi, shuning uchun
+  # bitta ishga yig'ildi: 3 daqiqa -> 1.
+  #
+  # Buyruq `npm run check` — mahalliy tekshiruv bilan AYNAN BIR XIL.
+  # Ikkita ro'yxat bo'lsa, ular vaqt o'tib ajralardi (loyihada bu
+  # allaqachon bir marta yuz bergan: `AnalysisType` va `ANALYSES`).
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # `.env` CI'da yo'q, `vite build` esa `VITE_API_URL` ni kutadi.
+      - run: npm run check
+        env:
+          VITE_API_URL: https://example.invalid

@@ -1,5 +1,9 @@
 <script setup>
-defineProps({ value: { default: null } });
+// Katak qiymati bir nechta turda kelishi mumkin: oddiy son yoki satr,
+// yoki `{spss, excel}` kabi multi-metod obyekti (asimmetriya, ekssess).
+defineProps({
+  value: { type: [Number, String, Boolean, Object], default: null },
+});
 
 function isObj(v) {
   return v && typeof v === "object" && !Array.isArray(v);

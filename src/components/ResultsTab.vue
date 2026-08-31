@@ -3,11 +3,20 @@ import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import AnalysisPanel from "./analysis/AnalysisPanel.vue";
 import ResultTable from "./analysis/ResultTable.vue";
+import ResultChart from "./analysis/ResultChart.vue";
+import { xatoMatni } from "../api/errors";
 
 const store = useStore();
 
 const result = computed(() => store.state.editor.result);
 const tables = computed(() => result.value?.tables ?? []);
+
+// Kanonik natijaning `meta` qismi: ogohlantirishlar va farazlar.
+// Bular jadval ichidagi `notes` dan farq qiladi — ular butun tahlilga
+// tegishli va natijani qanchalik jiddiy qabul qilish kerakligini aytadi.
+const charts = computed(() => result.value?.charts ?? []);
+const warnings = computed(() => result.value?.meta?.warnings ?? []);
+const assumptions = computed(() => result.value?.meta?.assumptions ?? []);
 const hasResults = computed(() => tables.value.length > 0);
 const isAuth = computed(() => store.getters["auth/isAuthenticated"]);
 const hasTelegram = computed(() => !!store.state.auth.user?.telegram_id);
@@ -28,7 +37,7 @@ async function onSave() {
     await store.dispatch("editor/saveResult");
     notice.value = "✓ Natija profilingizga saqlandi";
   } catch (e) {
-    notice.value = e.response?.data?.detail || "Saqlashda xatolik";
+    notice.value = xatoMatni(e, "Saqlashda xatolik");
   } finally {
     busy.value = "";
   }
@@ -45,7 +54,7 @@ async function onExport(f) {
       notice.value = "✓ Fayl Telegram botga yuborildi";
     }
   } catch (e) {
-    notice.value = e.response?.data?.detail || "Yetkazishda xatolik";
+    notice.value = xatoMatni(e, "Yetkazishda xatolik");
   } finally {
     busy.value = "";
   }
@@ -97,8 +106,31 @@ async function onExport(f) {
       </div>
       <p v-if="notice" class="notice">{{ notice }}</p>
 
+      <!-- Butun tahlilga tegishli ogohlantirishlar (meta.warnings) -->
+      <div v-if="warnings.length" class="meta-box warn">
+        <div class="meta-title">⚠️ Ogohlantirish</div>
+        <ul>
+          <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
+        </ul>
+      </div>
+
       <div class="tables">
         <ResultTable v-for="t in tables" :key="t.id" :table="t" />
+      </div>
+
+      <!-- Grafiklar jadvallardan KEYIN: SPSS'da ham natija oynasida
+           avval raqam, keyin tasvir keladi. Raqam — javob, grafik —
+           uni tekshirish vositasi. -->
+      <div v-if="charts.length" class="charts">
+        <ResultChart v-for="c in charts" :key="c.id" :chart="c" />
+      </div>
+
+      <!-- Metod qanday farazlarga tayanadi (meta.assumptions) -->
+      <div v-if="assumptions.length" class="meta-box info">
+        <div class="meta-title">Farazlar va izohlar</div>
+        <ul>
+          <li v-for="(a, i) in assumptions" :key="i">{{ a }}</li>
+        </ul>
       </div>
     </template>
 
@@ -197,6 +229,44 @@ async function onExport(f) {
   flex-direction: column;
   gap: 14px;
 }
+/* meta.warnings / meta.assumptions — butun tahlilga tegishli izohlar.
+   Ogohlantirish sariq (--a4): natijani ishonchsiz qilishi mumkin.
+   Farazlar neytral: metod nimaga tayanganini tushuntiradi. */
+.charts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+.meta-box {
+  border: 1px solid var(--bd2);
+  border-radius: var(--r2);
+  padding: 12px 16px;
+  margin: 14px 0;
+  font-size: .82rem;
+}
+.meta-box.warn {
+  border-color: rgba(245, 158, 11, .4);
+  background: rgba(245, 158, 11, .08);
+}
+.meta-box.info {
+  background: var(--s1);
+}
+.meta-title {
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin-bottom: 6px;
+}
+.meta-box.warn .meta-title { color: var(--a4); }
+.meta-box ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--t2);
+}
+.meta-box li { margin: 3px 0; }
 .empty {
   color: var(--t3);
   font-size: .9rem;
