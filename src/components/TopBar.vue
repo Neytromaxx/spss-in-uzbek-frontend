@@ -45,7 +45,7 @@ watch(title, (val, old) => {
 
       store.state.editor.file.title = val.trim();
       store.commit("editor/SET_SAVED", true);
-    } catch (e) {
+    } catch {
       alert("Nomni saqlashda xatolik");
       title.value = store.state.editor.file.title;
     } finally {

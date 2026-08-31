@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import AnalysisPanel from "./analysis/AnalysisPanel.vue";
 import ResultTable from "./analysis/ResultTable.vue";
+import ResultChart from "./analysis/ResultChart.vue";
 import { xatoMatni } from "../api/errors";
 
 const store = useStore();
@@ -13,6 +14,7 @@ const tables = computed(() => result.value?.tables ?? []);
 // Kanonik natijaning `meta` qismi: ogohlantirishlar va farazlar.
 // Bular jadval ichidagi `notes` dan farq qiladi — ular butun tahlilga
 // tegishli va natijani qanchalik jiddiy qabul qilish kerakligini aytadi.
+const charts = computed(() => result.value?.charts ?? []);
 const warnings = computed(() => result.value?.meta?.warnings ?? []);
 const assumptions = computed(() => result.value?.meta?.assumptions ?? []);
 const hasResults = computed(() => tables.value.length > 0);
@@ -114,6 +116,13 @@ async function onExport(f) {
 
       <div class="tables">
         <ResultTable v-for="t in tables" :key="t.id" :table="t" />
+      </div>
+
+      <!-- Grafiklar jadvallardan KEYIN: SPSS'da ham natija oynasida
+           avval raqam, keyin tasvir keladi. Raqam — javob, grafik —
+           uni tekshirish vositasi. -->
+      <div v-if="charts.length" class="charts">
+        <ResultChart v-for="c in charts" :key="c.id" :chart="c" />
       </div>
 
       <!-- Metod qanday farazlarga tayanadi (meta.assumptions) -->
@@ -223,6 +232,12 @@ async function onExport(f) {
 /* meta.warnings / meta.assumptions — butun tahlilga tegishli izohlar.
    Ogohlantirish sariq (--a4): natijani ishonchsiz qilishi mumkin.
    Farazlar neytral: metod nimaga tayanganini tushuntiradi. */
+.charts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
 .meta-box {
   border: 1px solid var(--bd2);
   border-radius: var(--r2);
