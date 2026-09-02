@@ -1,5 +1,23 @@
 // store/editor.js
 import api from "../api";
+import { xatoMatni } from "../api/errors";
+
+// 🔴 SPSS cheklovi — backenddagi `schemas.py` bilan BIR XIL bo'lishi shart.
+//
+// Ikkala tomonda ham tekshiruv bor va bu ataylab: backend to'siq,
+// frontend esa foydalanuvchiga limitni KO'RSATADI (tugma o'chadi).
+// Faqat backendda bo'lsa, foydalanuvchi 4-kodni kiritib, 1.5 soniyadan
+// keyin tushunarsiz 422 olardi.
+const MAX_KOD_ORALIQSIZ = 3;
+const MAX_KOD_ORALIQ_BILAN = 1;
+
+function kodChegarasi(v) {
+  return v?.missing?.range ? MAX_KOD_ORALIQ_BILAN : MAX_KOD_ORALIQSIZ;
+}
+
+function tarifBoshmi(m) {
+  return !m || (!(m.discrete || []).length && !m.range);
+}
 
 export default {
   namespaced: true,
@@ -30,6 +48,17 @@ export default {
     saving: false,
     saved: true,
     analyzing: false,
+
+    // 🔴 Sxema AVTOSAQLANADI (VariablesTab, 1.5 s debounce).
+    //
+    // Ya'ni foydalanuvchi «Saqlash» tugmasini bosmaydi va xatoni
+    // ko'radigan joyi yo'q. Noto'g'ri yo'q qiymat ta'rifida backend 422
+    // qaytaradi, ilgari esa `catch` faqat `console.error` qilardi —
+    // foydalanuvchi «saqlandi» deb o'ylab tahlilga o'tardi va `99` lar
+    // yana o'rtachaga qo'shilardi. Ya'ni endigina tuzatilgan xato
+    // jimgina qaytardi. Shu sababli xato holati ko'rinadigan bo'lishi
+    // shart.
+    schemaError: null,
   }),
 
   mutations: {
@@ -100,6 +129,10 @@ export default {
       state.analyzing = v;
     },
 
+    SET_SCHEMA_ERROR(state, v) {
+      state.schemaError = v;
+    },
+
     RESET(state) {
       state.file = null;
       state.schema = { variables: [] };
@@ -108,6 +141,7 @@ export default {
         type: null, params: null, title: null, meta: null,
         columns: {}, tables: [], charts: [],
       };
+      state.schemaError = null;
       state.saved = true;
       state.analyzing = false;
     },
@@ -120,7 +154,9 @@ export default {
         label: variable.label || "",
         measure: variable.measure || "scale",
         values: variable.values || null,
+        missing: variable.missing || null,
         _showValues: false,
+        _showMissing: false,
       });
 
       state.rows.forEach(r => {
@@ -170,6 +206,80 @@ export default {
       state.saved = false;
     },
 
+    /* ===== YO'Q QIYMATLAR ===== */
+
+    TOGGLE_MISSING_EDITOR(state, index) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+      v._showMissing = !v._showMissing;
+      if (v._showMissing && !v.missing) {
+        v.missing = { discrete: [], range: null };
+      }
+    },
+
+    ADD_MISSING_CODE(state, index) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+      if (!v.missing) v.missing = { discrete: [], range: null };
+      if (!v.missing.discrete) v.missing.discrete = [];
+      // Limitdan oshsa HECH NARSA QILMAYDI — tugma ham o'chirilgan
+      // bo'ladi, lekin qoida shu yerda ham turishi kerak: mutatsiyani
+      // boshqa joydan chaqirish mumkin.
+      if (v.missing.discrete.length >= kodChegarasi(v)) return;
+      v.missing.discrete.push("");
+      state.saved = false;
+    },
+
+    UPDATE_MISSING_CODE(state, { index, codeIndex, value }) {
+      const v = state.schema.variables[index];
+      if (!v?.missing?.discrete) return;
+      if (codeIndex < 0 || codeIndex >= v.missing.discrete.length) return;
+      v.missing.discrete[codeIndex] = value;
+      state.saved = false;
+    },
+
+    REMOVE_MISSING_CODE(state, { index, codeIndex }) {
+      const v = state.schema.variables[index];
+      if (!v?.missing?.discrete) return;
+      v.missing.discrete.splice(codeIndex, 1);
+      state.saved = false;
+    },
+
+    SET_MISSING_RANGE(state, { index, low, high }) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+      if (!v.missing) v.missing = { discrete: [], range: null };
+
+      const bosh = (x) => x === null || x === undefined || x === "";
+
+      if (bosh(low) && bosh(high)) {
+        // 🔴 Ikkala chegara ham bo'sh -> oraliq YO'Q.
+        //
+        // `{low: null, high: null}` yuborilsa backend uni rad etadi
+        // (422), chunki u hech narsani ta'riflamaydi. Bu yerda
+        // `null` ga aylantirmaslik foydalanuvchini tushunarsiz xatoga
+        // olib borardi — u shunchaki maydonlarni tozalagan bo'lardi.
+        v.missing.range = null;
+      } else {
+        v.missing.range = {
+          low: bosh(low) ? null : Number(low),
+          high: bosh(high) ? null : Number(high),
+        };
+        // Oraliq qo'shilganda SPSS chegarasi 1 taga tushadi.
+        if ((v.missing.discrete || []).length > MAX_KOD_ORALIQ_BILAN) {
+          v.missing.discrete = v.missing.discrete.slice(0, MAX_KOD_ORALIQ_BILAN);
+        }
+      }
+      state.saved = false;
+    },
+
+    CLEAR_MISSING(state, index) {
+      const v = state.schema.variables[index];
+      if (!v) return;
+      v.missing = null;
+      state.saved = false;
+    },
+
     /* ===== ROWS ===== */
 
     ADD_ROW(state) {
@@ -216,15 +326,37 @@ export default {
 
       commit("SET_SAVING", true);
 
-      await api.put(`/files/${state.file.id}/schema`, {
-        variables: state.schema.variables.map(v => {
-          const { _showValues, ...clean } = v;
-          return clean;
-        }),
+      const variables = state.schema.variables.map(v => {
+        // `_showValues` / `_showMissing` — faqat UI holati, backend
+        // sxemasida bunday maydon yo'q va u 422 berardi.
+        const { _showValues, _showMissing, ...clean } = v;
+
+        if (clean.missing) {
+          const kodlar = (clean.missing.discrete || [])
+            .map(k => String(k).trim())
+            .filter(Boolean);
+          const tarif = { discrete: kodlar, range: clean.missing.range || null };
+          // Bo'sh ta'rif sxemada ma'nosiz obyekt bo'lib qolmasin.
+          clean.missing = tarifBoshmi(tarif) ? null : tarif;
+        }
+        return clean;
       });
 
-      commit("SET_SAVING", false);
-      commit("SET_SAVED", true);
+      try {
+        await api.put(`/files/${state.file.id}/schema`, { variables });
+        commit("SET_SCHEMA_ERROR", null);
+        commit("SET_SAVED", true);
+      } catch (e) {
+        // 🔴 Xato KO'RINADIGAN bo'lishi shart — avtosaqlashda
+        // foydalanuvchi javobni boshqa hech qayerda ko'rmaydi.
+        commit("SET_SCHEMA_ERROR", xatoMatni(e, "Sxemani saqlab bo'lmadi."));
+        throw e;
+      } finally {
+        // Ilgari `finally` yo'q edi: 422 dan keyin `saving` abadiy
+        // `true` bo'lib qolardi va interfeys «saqlanmoqda» holatida
+        // muzlab turardi.
+        commit("SET_SAVING", false);
+      }
     },
 
     async saveRows({ state, commit }) {
