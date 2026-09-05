@@ -155,6 +155,7 @@ export default {
         measure: variable.measure || "scale",
         values: variable.values || null,
         missing: variable.missing || null,
+        derived: variable.derived || null,
         _showValues: false,
         _showMissing: false,
       });
@@ -357,6 +358,30 @@ export default {
         // muzlab turardi.
         commit("SET_SAVING", false);
       }
+    },
+
+    /* ===== HISOBLANGAN O'ZGARUVCHI ===== */
+
+    async validateExpression({ state }, { expression, name, overwrite }) {
+      // Saqlamasdan tekshiradi: foydalanuvchi xatoni SAQLASHDAN OLDIN
+      // ko'rsin. Qatorlar o'qilmaydi, ya'ni katta faylda ham tez.
+      if (!state.file) return;
+      await api.post(`/files/${state.file.id}/compute:validate`, {
+        expression,
+        name: name || null,
+        overwrite: !!overwrite,
+      });
+    },
+
+    async computeVariable({ state, dispatch }, payload) {
+      if (!state.file) return null;
+      const res = await api.post(`/files/${state.file.id}/compute`, payload);
+      // 🔴 Faylni QAYTA O'QIYMIZ. Backend yangi ustunni BARCHA
+      // qatorlarga yozdi va sxemaga o'zgaruvchi qo'shdi — mahalliy
+      // holatni qo'lda yamash ikkinchi haqiqat manbai bo'lardi va
+      // vaqt o'tib ajralib ketardi.
+      await dispatch("open", state.file.id);
+      return res.data;
     },
 
     async saveRows({ state, commit }) {

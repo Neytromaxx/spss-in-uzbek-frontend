@@ -1,6 +1,8 @@
 <script setup>
-import { computed, watch, onBeforeUnmount } from "vue";
+import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
+
+import ComputeModal from "./ComputeModal.vue";
 
 const store = useStore();
 
@@ -12,6 +14,9 @@ const variables = computed(() => store.state.editor.schema.variables);
 // Sxema avtosaqlanadi, ya'ni foydalanuvchi javobni boshqa hech qayerda
 // ko'rmaydi — xato shu yerda ko'rsatiladi.
 const schemaError = computed(() => store.state.editor.schemaError);
+
+// Hisoblangan o'zgaruvchi oynasi.
+const computeOchiq = ref(false);
 
 // Backenddagi `schemas.py` bilan bir xil (SPSS cheklovi).
 const MAX_KOD_ORALIQSIZ = 3;
@@ -56,6 +61,10 @@ function addVariable() {
 }
 
 defineExpose({ addVariable });
+
+function ifodaMatni(v) {
+  return v?.derived?.expression || "";
+}
 
 /* ===============================
    UPDATE HELPERS
@@ -152,6 +161,14 @@ onBeforeUnmount(() => {
   <div class="variables-tab">
     <h3>O‘zgaruvchilar ({{ variables.length }})</h3>
 
+    <div class="asboblar">
+      <button class="link" @click="computeOchiq = true">
+        ƒ Hisoblangan o‘zgaruvchi
+      </button>
+    </div>
+
+    <ComputeModal :open="computeOchiq" @close="computeOchiq = false" />
+
     <!-- Sxema avtosaqlanadi: xatoni ko'rsatadigan boshqa joy yo'q. -->
     <div v-if="schemaError" class="schema-error">
       <strong>Sxema saqlanmadi.</strong> {{ schemaError }}
@@ -176,7 +193,14 @@ onBeforeUnmount(() => {
         <template v-for="(v, i) in variables" :key="v.name">
           <!-- MAIN ROW -->
           <tr>
-            <td class="mono">{{ v.name }}</td>
+            <td class="mono">
+              <span
+                v-if="ifodaMatni(v)"
+                class="derived-belgi"
+                :title="'Ifoda: ' + ifodaMatni(v)"
+              >ƒ</span>
+              {{ v.name }}
+            </td>
 
             <td>
               <input
@@ -419,6 +443,18 @@ onBeforeUnmount(() => {
 }
 
 /* ===== YO'Q QIYMATLAR ===== */
+
+.asboblar {
+  display: flex;
+  gap: 8px;
+}
+
+.derived-belgi {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--a3);
+  margin-right: 4px;
+  cursor: help;
+}
 
 .schema-error {
   background: var(--s1);
