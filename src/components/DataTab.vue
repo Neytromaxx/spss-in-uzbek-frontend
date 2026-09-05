@@ -187,6 +187,11 @@ onBeforeUnmount(() => {
           <tr>
             <th>#</th>
             <th v-for="v in variables" :key="v.name">
+              <span
+                v-if="v.derived"
+                class="derived-belgi"
+                :title="'Ifoda: ' + v.derived.expression"
+              >ƒ</span>
               {{ v.label || v.name }}
             </th>
             <th></th>
@@ -198,9 +203,19 @@ onBeforeUnmount(() => {
             <td class="row-index">{{ rIndex + 1 }}</td>
 
             <td v-for="v in variables" :key="v.name">
+              <!-- 🔴 HISOBLANGAN USTUN TAHRIRLANMAYDI.
+                   Qo'lda o'zgartirish ifoda bilan ziddiyat yaratadi:
+                   ustun `derived.expression` dan kelib chiqqan deb
+                   yozilgan bo'ladi, katakda esa boshqa son turadi.
+                   Qiymatni o'zgartirish uchun ifodani qayta
+                   hisoblash kerak. -->
+              <span v-if="v.derived" class="derived-katak">
+                {{ row[v.name] === null || row[v.name] === undefined ? "—" : row[v.name] }}
+              </span>
+
               <!-- SCALE -->
               <input
-                v-if="v.measure === 'scale'"
+                v-else-if="v.measure === 'scale'"
                 type="number"
                 :value="row[v.name]"
                 @input="updateCell(rIndex, v.name, $event.target.value)"
@@ -322,6 +337,21 @@ th {
   width: 40px;
   font-family: 'JetBrains Mono', monospace;
   font-size: .78rem;
+}
+
+.derived-belgi {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--a3);
+  margin-right: 4px;
+  cursor: help;
+}
+
+.derived-katak {
+  display: inline-block;
+  padding: 8px 10px;
+  color: var(--t3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .84rem;
 }
 
 table input,
