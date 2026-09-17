@@ -3,6 +3,8 @@ import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 
 import ComputeModal from "./ComputeModal.vue";
+import RecodeModal from "./RecodeModal.vue";
+import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 
 const store = useStore();
 
@@ -17,6 +19,7 @@ const schemaError = computed(() => store.state.editor.schemaError);
 
 // Hisoblangan o'zgaruvchi oynasi.
 const computeOchiq = ref(false);
+const recodeOchiq = ref(false);
 
 // Backenddagi `schemas.py` bilan bir xil (SPSS cheklovi).
 const MAX_KOD_ORALIQSIZ = 3;
@@ -62,9 +65,7 @@ function addVariable() {
 
 defineExpose({ addVariable });
 
-function ifodaMatni(v) {
-  return v?.derived?.expression || "";
-}
+
 
 /* ===============================
    UPDATE HELPERS
@@ -165,9 +166,13 @@ onBeforeUnmount(() => {
       <button class="link" @click="computeOchiq = true">
         ƒ Hisoblangan o‘zgaruvchi
       </button>
+      <button class="link" @click="recodeOchiq = true">
+        ⇄ Qayta kodlash
+      </button>
     </div>
 
     <ComputeModal :open="computeOchiq" @close="computeOchiq = false" />
+    <RecodeModal :open="recodeOchiq" @close="recodeOchiq = false" />
 
     <!-- Sxema avtosaqlanadi: xatoni ko'rsatadigan boshqa joy yo'q. -->
     <div v-if="schemaError" class="schema-error">
@@ -195,10 +200,10 @@ onBeforeUnmount(() => {
           <tr>
             <td class="mono">
               <span
-                v-if="ifodaMatni(v)"
+                v-if="hosilami(v)"
                 class="derived-belgi"
-                :title="'Ifoda: ' + ifodaMatni(v)"
-              >ƒ</span>
+                :title="hosilaIzohi(v)"
+              >{{ hosilaBelgisi(v) }}</span>
               {{ v.name }}
             </td>
 

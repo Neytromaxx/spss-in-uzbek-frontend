@@ -2,6 +2,7 @@
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 import { xatoMatni } from "../api/errors";
+import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 
 import ImportPreview from "./ImportPreview.vue";
 
@@ -188,10 +189,10 @@ onBeforeUnmount(() => {
             <th>#</th>
             <th v-for="v in variables" :key="v.name">
               <span
-                v-if="v.derived"
+                v-if="hosilami(v)"
                 class="derived-belgi"
-                :title="'Ifoda: ' + v.derived.expression"
-              >ƒ</span>
+                :title="hosilaIzohi(v)"
+              >{{ hosilaBelgisi(v) }}</span>
               {{ v.label || v.name }}
             </th>
             <th></th>
@@ -203,12 +204,12 @@ onBeforeUnmount(() => {
             <td class="row-index">{{ rIndex + 1 }}</td>
 
             <td v-for="v in variables" :key="v.name">
-              <!-- 🔴 HISOBLANGAN USTUN TAHRIRLANMAYDI.
-                   Qo'lda o'zgartirish ifoda bilan ziddiyat yaratadi:
-                   ustun `derived.expression` dan kelib chiqqan deb
-                   yozilgan bo'ladi, katakda esa boshqa son turadi.
-                   Qiymatni o'zgartirish uchun ifodani qayta
-                   hisoblash kerak. -->
+              <!-- 🔴 HOSILA USTUN TAHRIRLANMAYDI.
+                   Qo'lda o'zgartirish ta'rif bilan ziddiyat yaratadi:
+                   ustun ifodadan yoki qayta kodlash qoidalaridan
+                   kelib chiqqan deb yozilgan bo'ladi, katakda esa
+                   boshqa son turadi. Qiymatni o'zgartirish uchun
+                   ta'rifni qayta qo'llash kerak. -->
               <span v-if="v.derived" class="derived-katak">
                 {{ row[v.name] === null || row[v.name] === undefined ? "—" : row[v.name] }}
               </span>

@@ -384,6 +384,31 @@ export default {
       return res.data;
     },
 
+    async previewRecode({ state }, { source, rules, name, overwrite }) {
+      // Saqlamasdan sanaydi. `validateExpression` dan farqi: bu yerda
+      // qatorlar O'QILADI, chunki `by_target` ni ularsiz hisoblab
+      // bo'lmaydi. Ya'ni bu tez tekshiruv emas, quruq yugurtirish.
+      if (!state.file) return null;
+      const res = await api.post(`/files/${state.file.id}/recode:preview`, {
+        source,
+        rules,
+        name: name || null,
+        overwrite: !!overwrite,
+      });
+      return res.data;
+    },
+
+    async recodeVariable({ state, dispatch }, payload) {
+      if (!state.file) return null;
+      const res = await api.post(`/files/${state.file.id}/recode`, payload);
+      // 🔴 Faylni QAYTA O'QIYMIZ — `computeVariable` dagi bilan bir xil
+      // sabab: backend yangi ustunni barcha qatorlarga yozdi va sxemaga
+      // o'zgaruvchi qo'shdi. Mahalliy holatni qo'lda yamash ikkinchi
+      // haqiqat manbai bo'lardi.
+      await dispatch("open", state.file.id);
+      return res.data;
+    },
+
     async saveRows({ state, commit }) {
       if (!state.file) return;
 
