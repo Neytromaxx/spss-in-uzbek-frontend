@@ -4,6 +4,7 @@ import { useStore } from "vuex";
 import { xatoMatni } from "../api/errors";
 import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 
+import FilterModal from "./FilterModal.vue";
 import ImportPreview from "./ImportPreview.vue";
 
 const store = useStore();
@@ -13,6 +14,33 @@ const store = useStore();
 ================================ */
 const variables = computed(() => store.state.editor.schema.variables);
 const rows = computed(() => store.state.editor.rows);
+
+/* ===============================
+   FILTR (07-vazifa)
+
+   🔴 ENG KATTA XAVF — foydalanuvchi filtr yoqilganini UNUTADI va
+   tanlamaning bir qismi bo'yicha chiqqan natijani butun tanlama deb
+   hisobotga kiritadi. Shuning uchun banner doimiy turadi va
+   chiqarilgan qatorlar ko'rinib turadi (yashirilmaydi).
+================================ */
+const filterOchiq = ref(false);
+const filtr = computed(() => store.state.editor.filter);
+const rowSelected = computed(() => store.state.editor.rowSelected);
+
+const filtrFaol = computed(() => !!filtr.value?.enabled && rowSelected.value.length > 0);
+const tanlanganSoni = computed(() => rowSelected.value.filter(Boolean).length);
+
+function chiqarilganmi(i) {
+  return filtrFaol.value && rowSelected.value[i] === false;
+}
+
+async function filtrniAlmashtir() {
+  try {
+    await store.dispatch("editor/toggleFilter");
+  } catch (e) {
+    importMsg.value = xatoMatni(e, "Filtrni o'zgartirib bo'lmadi.");
+  }
+}
 
 /* ===============================
    FAYLDAN O'QISH (CSV / Excel)
@@ -155,6 +183,10 @@ onBeforeUnmount(() => {
       <button class="csv-btn" :disabled="importing" @click="pickFile">
         {{ importing ? "O‘qilmoqda…" : "📁 Fayl yuklash" }}
       </button>
+      <button v-if="!filtr" class="link" @click="filterOchiq = true">
+        ⧩ Qatorlarni tanlash
+      </button>
+
       <input
         ref="fileInput"
         type="file"
@@ -164,6 +196,28 @@ onBeforeUnmount(() => {
       />
     </div>
     <p v-if="importMsg" class="csv-msg">{{ importMsg }}</p>
+
+    <!-- 🔴 DOIMIY BANNER. Filtr yoqilganini unutish — eng katta xavf. -->
+    <div v-if="filtr" class="filtr-banner" :class="{ ochiq: !filtr.enabled }">
+      <span class="belgi">⧩</span>
+      <span class="matn">
+        <template v-if="filtr.enabled">
+          <strong>Filtr yoqilgan</strong> — {{ rows.length }} dan
+          {{ tanlanganSoni }} qator tahlilga kiradi
+        </template>
+        <template v-else>
+          <strong>Filtr o‘chirilgan</strong> — barcha qatorlar tahlilga kiradi
+        </template>
+      </span>
+      <code class="shart">{{ filtr.expression }}</code>
+      <span class="bosh" />
+      <button class="link" @click="filtrniAlmashtir">
+        {{ filtr.enabled ? "O‘chirish" : "Yoqish" }}
+      </button>
+      <button class="link" @click="filterOchiq = true">Tahrirlash</button>
+    </div>
+
+    <FilterModal :open="filterOchiq" @close="filterOchiq = false" />
 
     <ImportPreview
       v-if="preview"
@@ -200,7 +254,15 @@ onBeforeUnmount(() => {
         </thead>
 
         <tbody>
-          <tr v-for="(row, rIndex) in rows" :key="rIndex">
+          <!-- 🔴 CHIQARILGAN QATOR KO'RINIB TURADI, yashirilmaydi:
+               yashirish ma'lumot yo'qolgandek taassurot berardi.
+               SPSS ham xuddi shunday — xiralashgan va ustidan
+               chiziq bilan. -->
+          <tr
+            v-for="(row, rIndex) in rows"
+            :key="rIndex"
+            :class="{ 'filtrdan-chiqqan': chiqarilganmi(rIndex) }"
+          >
             <td class="row-index">{{ rIndex + 1 }}</td>
 
             <td v-for="v in variables" :key="v.name">
@@ -338,6 +400,53 @@ th {
   width: 40px;
   font-family: 'JetBrains Mono', monospace;
   font-size: .78rem;
+}
+
+.filtr-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid var(--bd);
+  border-left: 3px solid var(--a1);
+  border-radius: var(--r3);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: .84rem;
+}
+
+.filtr-banner.ochiq {
+  border-left-color: var(--t3);
+  opacity: .75;
+}
+
+.filtr-banner .belgi {
+  color: var(--a1);
+}
+
+.filtr-banner .shart {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem;
+  color: var(--t3);
+}
+
+.filtr-banner .bosh {
+  flex: 1;
+}
+
+.filtr-banner .link {
+  background: transparent;
+  border: 1px solid var(--bd);
+  color: var(--a1);
+  padding: 3px 9px;
+  font-size: .78rem;
+}
+
+/* Chiqarilgan qator: ko'rinadi, lekin aralashmaydi. */
+.filtrdan-chiqqan {
+  opacity: .42;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .derived-belgi {
