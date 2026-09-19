@@ -116,6 +116,16 @@ natijalar endi **boshqa tanlamaga** tegishli, lekin ekranda
 o'zgarishsiz turadi. Belgilanmasa, u ikki xil tanlamadan chiqqan
 raqamlarni bitta hisobotga qo'yadi.
 
+Xesh `GET /files/{id}` javobidan olinadi, `GET /results` dan emas:
+ro'yxat anonim foydalanuvchida ham ishlaydi, ikkinchi marshrut esa
+login talab qiladi.
+
+🔴 Elementni **qayta hisoblash** eskisini almashtiradi (`replaceId`),
+qo'shmaydi — aks holda ro'yxatda bir xil tahlilning ikki nusxasi
+qolardi va `eskirgan` nishoni yo'qolmasdi. Oddiy tahlilda esa eski
+element **qoladi**: foydalanuvchi eski raqamni ham ko'rmoqchi
+bo'lishi mumkin.
+
 Eskirgan element sukut bo'yicha **eksportga belgilanmaydi**, va
 belgilangan bo'lsa eksportdan oldin tasdiq so'raladi: server
 hammasini joriy ma'lumot bilan qayta hisoblaydi, ya'ni hujjatdagi

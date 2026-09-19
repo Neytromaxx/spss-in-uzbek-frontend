@@ -143,9 +143,21 @@ export default {
       }
 
       const kalit = natijaKaliti(element.type, element.params, element.rows_hash);
-      const orin = state.results.findIndex(
+      let orin = state.results.findIndex(
         e => natijaKaliti(e.type, e.params, e.rows_hash) === kalit,
       );
+
+      // 🔴 QAYTA HISOBLASH ESKI ELEMENTNI ALMASHTIRADI, qo'shmaydi.
+      //
+      // Odatda yangi `rows_hash` YANGI element yasaydi va eskisi
+      // «eskirgan» bo'lib qoladi — bu to'g'ri, chunki foydalanuvchi
+      // eski raqamni ham ko'rmoqchi bo'lishi mumkin. Lekin u
+      // AYNAN shu elementni qayta hisoblashni so'raganda, eskisi
+      // ro'yxatda qolsa, `eskirgan` nishoni yo'qolmasdi va
+      // ro'yxatda bir xil tahlilning ikki nusxasi turardi.
+      if (orin < 0 && payload?.replaceId) {
+        orin = state.results.findIndex(e => e.id === payload.replaceId);
+      }
 
       if (orin >= 0) {
         // Bir xil tahlil, bir xil ma'lumot — O'SHA element
@@ -161,6 +173,12 @@ export default {
           created_at: eski.created_at,
         };
         state.activeId = eski.id;
+
+        // Kalit bo'yicha boshqa element topilgan bo'lsa, qayta
+        // hisoblangan eskisi ortiqcha qoladi.
+        if (payload?.replaceId && eski.id !== payload.replaceId) {
+          state.results = state.results.filter(e => e.id !== payload.replaceId);
+        }
         return;
       }
 
@@ -433,9 +451,17 @@ export default {
       });
 
       // 🔴 FAYL OCHILGANDA ESKIRGANLIK DARROV HISOBLANADI.
+      //
       // Aks holda foydalanuvchi kecha bajarilgan tahlilni bugungi
-      // (o'zgargan) ma'lumotga tegishli deb o'qirdi. Anonim
-      // foydalanuvchida bu jimgina o'tkazib yuboriladi.
+      // (o'zgargan) ma'lumotga tegishli deb o'qirdi.
+      //
+      // Xesh AYNAN SHU javobdan olinadi, `GET /results` dan emas:
+      // ro'yxat anonim foydalanuvchida ham ishlaydi, `GET /results`
+      // esa login talab qiladi. Xesh faqat o'sha yerdan kelsa,
+      // anonim foydalanuvchi ustun qo'shgandan keyin eski
+      // natijalarni o'zgarishsiz ko'rib turaverardi.
+      if (res.data.rows_hash) commit("MARK_STALE", res.data.rows_hash);
+
       try {
         await dispatch("loadSavedResults");
       } catch {
@@ -602,7 +628,7 @@ export default {
           saveToProfile: payload.saveToProfile ?? false,
         });
 
-        commit("ADD_RESULT", res.data);
+        commit("ADD_RESULT", { ...res.data, replaceId: payload.replaceId ?? null });
         return res.data;
       } finally {
         commit("SET_ANALYZING", false);
@@ -720,10 +746,14 @@ export default {
     async recomputeEntry({ state, dispatch }, id) {
       const e = state.results.find(x => x.id === id);
       if (!e) return;
-      // `analyze` yangi `rows_hash` bilan qaytadi va `ADD_RESULT`
-      // Q2 bo'yicha eski elementni o'rnida yangilaydi yoki yangisini
-      // qo'shib, eskisini `stale` qiladi.
-      return dispatch("analyze", { type: e.type ?? "auto", params: e.params ?? {} });
+      // `replaceId` — `ADD_RESULT` eski elementni O'RNIDA
+      // almashtirsin: aks holda ro'yxatda bir xil tahlilning
+      // ikki nusxasi qolardi (biri `eskirgan` nishoni bilan).
+      return dispatch("analyze", {
+        type: e.type ?? "auto",
+        params: e.params ?? {},
+        replaceId: id,
+      });
     },
 
     /** Belgilangan natijalarni BITTA hujjatga eksport qiladi.
