@@ -157,6 +157,65 @@ describe("ADD_RESULT", () => {
     expect(s.results).toHaveLength(2);
   });
 
+  it("🔴 QAYTA HISOBLASH ESKI ELEMENTNI ALMASHTIRADI", () => {
+    // Odatda yangi `rows_hash` yangi element yasaydi va eskisi
+    // «eskirgan» bo'lib qoladi. Lekin foydalanuvchi AYNAN shu
+    // elementni qayta hisoblashni so'raganda eskisi ro'yxatda
+    // qolsa, nishon yo'qolmasdi va bir xil tahlilning ikki
+    // nusxasi turardi.
+    const s = holat();
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h1" }));
+    const id = s.results[0].id;
+
+    mutations.ADD_RESULT(s, { ...javob({ rows_hash: "h2" }), replaceId: id });
+
+    expect(s.results).toHaveLength(1);
+    expect(s.results[0].id).toBe(id);
+    expect(s.results[0].rows_hash).toBe("h2");
+    expect(s.results[0].stale).toBe(false);
+  });
+
+  it("almashtirishda ham `saved` va tanlov saqlanadi", () => {
+    const s = holat();
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h1" }));
+    const id = s.results[0].id;
+    mutations.SET_RESULT_SAVED(s, { id, saved_id: "db1" });
+    mutations.TOGGLE_SELECTED(s, id);
+
+    mutations.ADD_RESULT(s, { ...javob({ rows_hash: "h2" }), replaceId: id });
+    expect(s.results[0].saved).toBe(true);
+    expect(s.results[0].selected).toBe(false);
+  });
+
+  it("almashtiriladigan natija allaqachon ro'yxatda bo'lsa, eskisi olib tashlanadi", () => {
+    // Foydalanuvchi avval yangi ma'lumot bilan tahlil qilib, keyin
+    // eskirganini ham qayta hisoblasa — natija bitta bo'lsin.
+    const s = holat();
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h1" }));
+    const eskiId = s.results[0].id;
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h2" }));
+    expect(s.results).toHaveLength(2);
+
+    mutations.ADD_RESULT(s, { ...javob({ rows_hash: "h2" }), replaceId: eskiId });
+    expect(s.results).toHaveLength(1);
+    expect(s.results[0].rows_hash).toBe("h2");
+  });
+
+  it("`replaceId` yo'q bo'lsa eski element ro'yxatda QOLADI", () => {
+    // Oddiy tahlilda foydalanuvchi eski raqamni ham ko'rmoqchi
+    // bo'lishi mumkin — u shunchaki `eskirgan` deb belgilanadi.
+    const s = holat();
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h1" }));
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h2" }));
+    expect(s.results).toHaveLength(2);
+  });
+
+  it("noma'lum `replaceId` yangi element yasaydi", () => {
+    const s = holat();
+    mutations.ADD_RESULT(s, { ...javob({ rows_hash: "h1" }), replaceId: "yoq" });
+    expect(s.results).toHaveLength(1);
+  });
+
   it("yangisi ro'yxat boshiga qo'shiladi va faol bo'ladi", () => {
     const s = holat();
     mutations.ADD_RESULT(s, javob({ type: "anova" }));
@@ -367,6 +426,74 @@ describe("loadSavedResults", () => {
   });
 });
 
+describe("analyze", () => {
+  it("🔴 `replaceId` NI ADD_RESULT GACHA OLIB BORADI", () => {
+    // Zanjir uch bo'g'inli: `recomputeEntry` → `analyze` →
+    // `ADD_RESULT`. O'rtadagi bo'g'in uni tashlab yuborsa, qayta
+    // hisoblash yana dubl yasardi.
+    const s = holat();
+    api.post.mockResolvedValue({ data: javob({ rows_hash: "h2" }) });
+    const commit = vi.fn();
+
+    return actions.analyze({ state: s, commit }, { type: "crosstab", replaceId: "e9" })
+      .then(() => {
+        const [, tana] = commit.mock.calls.find(c => c[0] === "ADD_RESULT");
+        expect(tana.replaceId).toBe("e9");
+      });
+  });
+
+  it("`replaceId` berilmasa `null` uzatiladi", () => {
+    const s = holat();
+    api.post.mockResolvedValue({ data: javob() });
+    const commit = vi.fn();
+
+    return actions.analyze({ state: s, commit }, { type: "crosstab" }).then(() => {
+      const [, tana] = commit.mock.calls.find(c => c[0] === "ADD_RESULT");
+      expect(tana.replaceId).toBeNull();
+    });
+  });
+});
+
+describe("open — eskirganlik", () => {
+  it("🔴 ANONIM FOYDALANUVCHIDA HAM ESKIRGANLIK BELGILANADI", async () => {
+    // Xesh `GET /files/{id}` javobidan olinadi, `GET /results`
+    // dan emas: ikkinchisi login talab qiladi va anonim
+    // foydalanuvchi eski natijalarni o'zgarishsiz ko'rib
+    // turaverardi.
+    api.get.mockResolvedValue({
+      data: {
+        file: { id: "f1" }, schema: { variables: [] }, rows: [],
+        filter: null, rows_hash: "h2",
+      },
+    });
+    const commit = vi.fn();
+    await actions.open({ commit, dispatch: vi.fn() }, "f1");
+
+    expect(commit).toHaveBeenCalledWith("MARK_STALE", "h2");
+  });
+
+  it("xesh kelmasa MARK_STALE chaqirilmaydi", async () => {
+    api.get.mockResolvedValue({
+      data: { file: { id: "f1" }, schema: { variables: [] }, rows: [], filter: null },
+    });
+    const commit = vi.fn();
+    await actions.open({ commit, dispatch: vi.fn() }, "f1");
+    expect(commit.mock.calls.some(c => c[0] === "MARK_STALE")).toBe(false);
+  });
+
+  it("ro'yxat yuklanmasa ham fayl ochiladi", async () => {
+    api.get.mockResolvedValue({
+      data: { file: { id: "f1" }, schema: { variables: [] }, rows: [],
+              filter: null, rows_hash: "h1" },
+    });
+    const commit = vi.fn();
+    const dispatch = vi.fn().mockRejectedValue(new Error("401"));
+
+    await actions.open({ commit, dispatch }, "f1");
+    expect(commit).toHaveBeenCalledWith("SET_FILE", { id: "f1" });
+  });
+});
+
 describe("deleteResultEntry", () => {
   it("saqlangan element SERVERDAN ham o'chadi", async () => {
     const s = holat();
@@ -451,6 +578,19 @@ describe("exportSelected", () => {
 });
 
 describe("refreshStale", () => {
+  it("🔴 QAYTA HISOBLASH `replaceId` BILAN ketadi", async () => {
+    // Usiz eksportdan keyin `eskirgan` nishoni yo'qolmasdi —
+    // eski element ro'yxatda qolib ketardi.
+    const s = holat();
+    mutations.ADD_RESULT(s, javob({ rows_hash: "h1" }));
+    mutations.MARK_STALE(s, "h2");
+    const id = s.results[0].id;
+    const dispatch = vi.fn();
+
+    await actions.recomputeEntry({ state: s, dispatch }, id);
+    expect(dispatch).toHaveBeenCalledWith("analyze", expect.objectContaining({ replaceId: id }));
+  });
+
   it("faqat eskirgan VA belgilangan elementlarni qayta hisoblaydi", async () => {
     const s = holat();
     mutations.ADD_RESULT(s, javob({ type: "a", rows_hash: "h1" }));
