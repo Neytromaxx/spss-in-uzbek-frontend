@@ -2,13 +2,21 @@
 //
 // 🔴 NIMA UCHUN BU FAYL BOR
 //
-// `SET_RESULT` backend javobini frontend holatiga o'giradi. U jimgina
+// `ADD_RESULT` backend javobini frontend holatiga o'giradi. U jimgina
 // maydon tashlab yuborsa, hech narsa yiqilmaydi — shunchaki ekranda
 // bir narsa KO'RINMAY qoladi. Aynan shunday bo'lgan edi: `title` va
 // `meta` tashlanardi, natijada har bir tahlil "Tahlil natijasi" deb
 // nomlanardi va statistik ogohlantirishlar foydalanuvchiga yetmasdi.
 //
 // Shuning uchun bu testlar maydonlarni BITTALAB tekshiradi.
+//
+// 08-vazifada `result` (birlik) `results: []` ga almashdi, lekin
+// AYNAN shu xavf qoldi — o'girish kodi o'sha kod. Testlar ham
+// shuning uchun saqlanib qoldi, faqat ro'yxatning birinchi
+// elementiga qaraydi.
+//
+// Ro'yxatning o'zi (dubl, eskirganlik, tartib) —
+// `tests/results-list.spec.js` da.
 
 import { describe, it, expect } from "vitest";
 import editor from "../src/store/editor";
@@ -40,83 +48,93 @@ function javob(qismlar = {}) {
   };
 }
 
-describe("SET_RESULT", () => {
+// Ro'yxatning birinchi (eng yangi) elementi.
+function n(s) {
+  return s.results[0];
+}
+
+describe("ADD_RESULT — javobni o'girish", () => {
   it("sarlavhani saqlaydi", () => {
     // Ilgari tashlanardi -> ResultsTab doim "Tahlil natijasi" ko'rsatardi.
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
-    expect(s.result.title).toBe("Kesishma jadvali va xi-kvadrat testi");
+    mutations.ADD_RESULT(s, javob());
+    expect(n(s).title).toBe("Kesishma jadvali va xi-kvadrat testi");
   });
 
   it("meta.warnings va meta.assumptions ni saqlaydi", () => {
     // Ilgari tashlanardi -> statistik ogohlantirish ko'rinmasdi.
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
-    expect(s.result.meta.warnings).toHaveLength(1);
-    expect(s.result.meta.warnings[0]).toContain("Kutilgan chastotasi");
-    expect(s.result.meta.assumptions).toHaveLength(1);
+    mutations.ADD_RESULT(s, javob());
+    expect(n(s).meta.warnings).toHaveLength(1);
+    expect(n(s).meta.warnings[0]).toContain("Kutilgan chastotasi");
+    expect(n(s).meta.assumptions).toHaveLength(1);
   });
 
   it("type va params ni saqlaydi (eksport shularga tayanadi)", () => {
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
-    expect(s.result.type).toBe("crosstab");
-    expect(s.result.params).toEqual({ variables: ["a", "b"] });
+    mutations.ADD_RESULT(s, javob());
+    expect(n(s).type).toBe("crosstab");
+    expect(n(s).params).toEqual({ variables: ["a", "b"] });
   });
 
   it("grafiklarni saqlaydi", () => {
     // Grafiklar `tables` bilan bir xil yo'ldan keladi; biri tushib
     // qolsa ikkinchisi ham tushib qolgan bo'lishi mumkin.
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
-    expect(s.result.charts).toHaveLength(1);
-    expect(s.result.charts[0].kind).toBe("bar");
+    mutations.ADD_RESULT(s, javob());
+    expect(n(s).charts).toHaveLength(1);
+    expect(n(s).charts[0].kind).toBe("bar");
   });
 
   it("jadvallarni saqlaydi", () => {
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
-    expect(s.result.tables).toHaveLength(1);
-    expect(s.result.tables[0].id).toBe("ct");
+    mutations.ADD_RESULT(s, javob());
+    expect(n(s).tables).toHaveLength(1);
+    expect(n(s).tables[0].id).toBe("ct");
   });
 
   it("legacy_columns bo'lsa ustunli ko'rinishni undan oladi", () => {
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob({ legacy_columns: { columns: { age: { analysis: "descriptive" } } } }));
-    expect(s.result.columns.age.analysis).toBe("descriptive");
+    mutations.ADD_RESULT(s, javob({ legacy_columns: { columns: { age: { analysis: "descriptive" } } } }));
+    expect(n(s).columns.age.analysis).toBe("descriptive");
   });
 
   it("bo'sh yoki chala javobda yiqilmaydi", () => {
     const s = stateFactory();
-    mutations.SET_RESULT(s, {});
-    expect(s.result.tables).toEqual([]);
-    expect(s.result.charts).toEqual([]);
-    expect(s.result.columns).toEqual({});
-    expect(s.result.title).toBeNull();
-    expect(s.result.meta).toBeNull();
+    mutations.ADD_RESULT(s, {});
+    expect(n(s).tables).toEqual([]);
+    expect(n(s).charts).toEqual([]);
+    expect(n(s).columns).toEqual({});
+    expect(n(s).title).toBeNull();
+    expect(n(s).meta).toBeNull();
   });
 });
 
-describe("natija holatining shakli", () => {
-  // Boshlang'ich holat, RESET va SET_RESULT bir xil kalitlarni bersin —
-  // aks holda komponentlar ba'zan `undefined` bilan ishlashga majbur.
-  const kutilgan = ["type", "params", "title", "meta", "columns", "tables", "charts"];
+describe("element shakli", () => {
+  // Har bir element bir xil kalitlarni bersin — aks holda
+  // komponentlar ba'zan `undefined` bilan ishlashga majbur.
+  const kutilgan = [
+    "id", "type", "params", "title", "meta", "columns", "tables", "charts",
+    "rows_hash", "created_at", "saved", "saved_id", "stale", "selected",
+  ];
 
-  it("boshlang'ich holatda hamma kalit bor", () => {
-    expect(Object.keys(stateFactory().result).sort()).toEqual([...kutilgan].sort());
+  it("to'liq javobda hamma kalit bor", () => {
+    const s = stateFactory();
+    mutations.ADD_RESULT(s, javob());
+    expect(Object.keys(n(s)).sort()).toEqual([...kutilgan].sort());
   });
 
-  it("RESET dan keyin ham hamma kalit bor", () => {
+  it("chala javobda ham hamma kalit bor", () => {
     const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
+    mutations.ADD_RESULT(s, {});
+    expect(Object.keys(n(s)).sort()).toEqual([...kutilgan].sort());
+  });
+
+  it("RESET ro'yxatni bo'shatadi", () => {
+    const s = stateFactory();
+    mutations.ADD_RESULT(s, javob());
     mutations.RESET(s);
-    expect(Object.keys(s.result).sort()).toEqual([...kutilgan].sort());
-    expect(s.result.title).toBeNull();
-  });
-
-  it("SET_RESULT dan keyin ham hamma kalit bor", () => {
-    const s = stateFactory();
-    mutations.SET_RESULT(s, javob());
-    expect(Object.keys(s.result).sort()).toEqual([...kutilgan].sort());
+    expect(s.results).toEqual([]);
+    expect(s.activeId).toBeNull();
   });
 });

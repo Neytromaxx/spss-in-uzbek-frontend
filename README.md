@@ -47,7 +47,8 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | Fayl | Nimani qo'riqlaydi |
 | --- | --- |
 | `errors.spec.js` | Backend xatosining uch xil shakli o'qiladigan matnga aylanishi |
-| `editor-store.spec.js` | `SET_RESULT` natijadan hech qanday maydonni tashlab yubormasligi |
+| `editor-store.spec.js` | `ADD_RESULT` natijadan hech qanday maydonni tashlab yubormasligi |
+| `results-list.spec.js` | Natijalar ro'yxati: dubl, eskirganlik, tanlash, eksport |
 | `analysis-panel.spec.js` | Panel backend kutgan ANIQ parametr nomlarini yuborishi |
 | `dataset-import.spec.js` | Manbadan fayl yaratish amallari va rol getteri |
 | `dataset-modal.spec.js` | Import oynasi: uchta manba, kampaniya tanlash, bo'sh kampaniya himoyasi |
@@ -61,10 +62,79 @@ qo'riqlaydi — kod ishlaydi, lekin noto'g'ri yoki kam natija beradi:
   sxemasi esa faqat 3 tasini qabul qilardi — qolgani 422 berardi.
 - `editor-store.spec.js` natija sarlavhasi va statistik ogohlantirishlar
   saqlanishini tekshiradi. Ilgari ular jimgina tashlanardi.
+- `results-list.spec.js` ro'yxatning uchta jimgina buziladigan
+  xatti-harakatini qo'riqlaydi: dubl karta, yo'qolgan «eskirgan»
+  nishoni va eskirgan natijani tasdiqsiz eksport qilish.
 
 > ⚠️ `analysis-panel.spec.js` dagi metodlar ro'yxati qo'lda yozilgan, chunki
 > u boshqa repodagi `engine.ANALYSES` ga tegishli. Backendga yangi metod
 > qo'shilsa, bu ro'yxatni ham yangilang.
+
+---
+
+## Natijalar ro'yxati (08-vazifa)
+
+Tahlillar **teng huquqli ro'yxat** bo'lib to'planadi: `results: []`
+va `activeId`. Ierarxiya yo'q — «asosiy natija + qo'shilganlar»
+modeli javobsiz savol tug'dirardi: birinchisi nimasi bilan alohida,
+uni o'chirsa nima bo'ladi, eksportda u majburiymi?
+
+Sessiya elementlari va saqlanganlar ham ikki xil ro'yxat emas:
+bittasi, har elementda `saved` bayrog'i bilan.
+
+### 🔴 Faqat faol element chiziladi
+
+10 ta natijaning hammasini bir vaqtda DOM'ga chiqarish telefonda
+sezilarli sekinlik beradi — har birida jadvallar va SVG grafiklar
+bor. Kartalar yig'iladi, `activeId` esa bittasini ochadi.
+
+### ⚠️ `src/natijalar.js` — backend qoidasining nusxasi
+
+Element o'ziga xosligi `(type, params, rows_hash)` bilan
+aniqlanadi va `params` solishtirishdan oldin kanonik holatga
+keltiriladi: kalitlar saralanadi, `null` va yo'q maydon bir xil
+ko'riladi, **massiv tartibi saqlanadi**.
+
+Aynan shu mantiq backendda ham bor
+(`app/modules/statistics/results.py`). Ikkala tomonda kerak:
+backend saqlangan dublni tozalaydi, frontend sessiya ro'yxatini
+yig'adi. Python va JS kodni baham ko'ra olmaydi.
+
+Shuning uchun `tests/results-list.spec.js` dagi holatlar ro'yxati
+backenddagi `tests/test_results_api.py` bilan **aynan bir xil**.
+Biri o'zgartirilsa, ikkinchisi ham o'zgartirilsin.
+
+### Eskirganlik
+
+`element.rows_hash !== current_rows_hash` → `stale: true`.
+Backenddagi `_rows_hash` qatorlarni **va** filtrni qamraydi, ya'ni
+bitta maydon ikkala o'zgarishni ham ushlaydi.
+
+🔴 Bu ro'yxatning eng muhim qismi. Foydalanuvchi ANOVA qiladi,
+keyin Compute bilan ustun qo'shadi yoki filtrni yoqadi — eski
+natijalar endi **boshqa tanlamaga** tegishli, lekin ekranda
+o'zgarishsiz turadi. Belgilanmasa, u ikki xil tanlamadan chiqqan
+raqamlarni bitta hisobotga qo'yadi.
+
+Eskirgan element sukut bo'yicha **eksportga belgilanmaydi**, va
+belgilangan bo'lsa eksportdan oldin tasdiq so'raladi: server
+hammasini joriy ma'lumot bilan qayta hisoblaydi, ya'ni hujjatdagi
+raqam ekrandagidan farq qilishi mumkin. Hujjat yasalgach o'sha
+elementlar qayta hisoblanadi — ekran bilan hujjat mos bo'lib
+qolsin.
+
+### Anonim foydalanuvchi
+
+Tahlil login talab qilmaydi, saqlash va eksport talab qiladi.
+`GET /results` anonim holatda **chaqirilmaydi** (chaqirilsa har
+fayl ochilishida kutilgan `401` konsolga tushardi). Ro'yxat sahifa
+yangilanganda yo'qoladi va interfeys buni bir qatorda aytadi.
+
+### `localStorage` da nima saqlanadi
+
+Faqat tartib tanlovi: `mtt.results.order` = `yangi` | `eski`. Bu
+bitta qisqa satr. Natijalarning o'zi saqlanmaydi — ular
+megabaytlarga yetishi mumkin va baribir serverdan qayta o'qiladi.
 
 ---
 

@@ -1,6 +1,29 @@
 // store/editor.js
 import api from "../api";
 import { xatoMatni } from "../api/errors";
+import { natijaElementi, natijaKaliti } from "../natijalar";
+
+// Tartib tanlovi `localStorage` da: bu bitta qisqa satr, natija
+// JSON'i emas. Natijalarning o'zi saqlanmaydi — ular megabaytlarga
+// yetishi mumkin va baribir serverdan qayta o'qiladi.
+const TARTIB_KALITI = "mtt.results.order";
+
+function tartibniOqi() {
+  try {
+    return localStorage.getItem(TARTIB_KALITI) === "eski" ? "eski" : "yangi";
+  } catch {
+    // Shaxsiy rejimda `localStorage` istisno tashlashi mumkin.
+    return "yangi";
+  }
+}
+
+function tartibniYoz(qiymat) {
+  try {
+    localStorage.setItem(TARTIB_KALITI, qiymat);
+  } catch {
+    // Saqlanmasa ham ro'yxat ishlayveradi.
+  }
+}
 
 // 🔴 SPSS cheklovi — backenddagi `schemas.py` bilan BIR XIL bo'lishi shart.
 //
@@ -44,17 +67,25 @@ export default {
     filter: null,
     rowSelected: [],
 
-    // BACKEND FORMATGA MOS — shakli `SET_RESULT` bilan bir xil bo'lsin,
-    // aks holda komponentlar `undefined` bilan ishlashga majbur bo'ladi.
-    result: {
-      type: null,
-      params: null,
-      title: null,
-      meta: null,
-      columns: {},
-      tables: [],
-      charts: [],
-    },
+    // Natijalar ro'yxati (08-vazifa).
+    //
+    // 🔴 IERARXIYA YO'Q — teng huquqli elementlar. «Asosiy natija +
+    // qo'shilganlar» modeli javobsiz savol tug'dirardi: birinchisi
+    // nimasi bilan alohida, uni o'chirsa nima bo'ladi, eksportda u
+    // majburiymi?
+    //
+    // Sessiya elementlari va saqlanganlar ham IKKI XIL RO'YXAT EMAS:
+    // bittasi, har elementda `saved` bayrog'i bilan. Ikkitasi bo'lsa,
+    // bir xil tahlil ikkala ro'yxatda ham turib qolardi.
+    results: [],
+
+    // Hozir ochiq turgan element. Faqat u to'liq chiziladi — 10 ta
+    // natijaning hammasini DOM'ga chiqarish telefonda sezilarli
+    // sekinlik beradi.
+    activeId: null,
+
+    // "yangi" — yangisi tepada (sukut), "eski" — yangisi pastda.
+    resultsOrder: tartibniOqi(),
 
     saving: false,
     saved: true,
@@ -91,37 +122,97 @@ export default {
       state.saved = false;
     },
 
-    SET_RESULT(state, payload) {
-      // payload = AnalyzeResponse: { type, params, result }.
-      // `result` — kanonik sxema: { analysis, title, tables, meta }.
-      // Ustunli ko'rinish vaqtincha legacy_columns'dan olinadi.
+    /* ===== NATIJALAR RO'YXATI (08-vazifa) ===== */
+
+    ADD_RESULT(state, payload) {
+      // payload = AnalyzeResponse: { type, params, result, rows_hash,
+      // saved_id }. `result` — kanonik sxema.
+      const element = natijaElementi(payload);
+
+      // 🔴 YANGI `rows_hash` ESKILARINI ESKIRTIRADI.
       //
-      // 🔴 `title` va `meta` NI TASHLAB YUBORMAYMIZ.
-      //
-      // Ilgari bu yerda faqat type/params/columns/tables olinardi va
-      // ikkita narsa jimgina yo'qolardi:
-      //
-      //   1. `title` — ResultsTab uni ko'rsatmoqchi bo'lardi, lekin u
-      //      hech qachon kelmagani uchun DOIM "Tahlil natijasi" zaxira
-      //      matni chiqardi. Ya'ni "Chiziqli regressiya" ham,
-      //      "Kruskal-Uollis H testi" ham bir xil ko'rinardi.
-      //
-      //   2. `meta.warnings` va `meta.assumptions` — backend ularni
-      //      to'ldiradi (correlation.py, normality.py, regression.py,
-      //      categorical.py). Bular statistikada bezak emas: masalan
-      //      kategorik tahlilda "kutilgan chastota 5 dan kichik"
-      //      ogohlantirishi natijani ishonchsiz qiladi. Foydalanuvchi
-      //      buni umuman ko'rmasdi.
-      const r = payload.result || {};
-      state.result = {
-        type: payload.type ?? null,
-        params: payload.params ?? null,
-        title: r.title ?? null,
-        meta: r.meta ?? null,
-        charts: r.charts ?? [],
-        columns: r.legacy_columns?.columns ?? r.columns ?? {},
-        tables: r.tables ?? [],
-      };
+      // Foydalanuvchi ANOVA qiladi, keyin Compute bilan ustun
+      // qo'shadi yoki filtrni yoqadi — eski natijalar endi BOSHQA
+      // tanlamaga tegishli, lekin ekranda o'zgarishsiz turadi.
+      // Belgilanmasa, u ikki xil tanlamadan chiqqan raqamlarni
+      // bitta hujjatga qo'yadi va buni hech kim sezmaydi.
+      if (element.rows_hash) {
+        for (const e of state.results) {
+          if (e.rows_hash && e.rows_hash !== element.rows_hash) e.stale = true;
+        }
+      }
+
+      const kalit = natijaKaliti(element.type, element.params, element.rows_hash);
+      const orin = state.results.findIndex(
+        e => natijaKaliti(e.type, e.params, e.rows_hash) === kalit,
+      );
+
+      if (orin >= 0) {
+        // Bir xil tahlil, bir xil ma'lumot — O'SHA element
+        // yangilanadi. `id` va foydalanuvchi tanlovlari saqlanadi,
+        // aks holda ro'yxat qayta tahlildan keyin sakrab ketardi.
+        const eski = state.results[orin];
+        state.results[orin] = {
+          ...element,
+          id: eski.id,
+          selected: eski.selected,
+          saved: eski.saved || element.saved,
+          saved_id: element.saved_id ?? eski.saved_id,
+          created_at: eski.created_at,
+        };
+        state.activeId = eski.id;
+        return;
+      }
+
+      state.results.unshift(element);
+      state.activeId = element.id;
+    },
+
+    SET_RESULTS(state, elementlar) {
+      state.results = elementlar;
+      if (!elementlar.some(e => e.id === state.activeId)) {
+        state.activeId = elementlar[0]?.id ?? null;
+      }
+    },
+
+    REMOVE_RESULT(state, id) {
+      state.results = state.results.filter(e => e.id !== id);
+      if (state.activeId === id) state.activeId = state.results[0]?.id ?? null;
+    },
+
+    SET_ACTIVE_RESULT(state, id) {
+      // O'sha elementni qayta bosish uni YOPADI.
+      state.activeId = state.activeId === id ? null : id;
+    },
+
+    TOGGLE_SELECTED(state, id) {
+      const e = state.results.find(x => x.id === id);
+      if (e) e.selected = !e.selected;
+    },
+
+    SELECT_ALL(state, qiymat) {
+      for (const e of state.results) e.selected = !!qiymat;
+    },
+
+    MARK_STALE(state, joriyXesh) {
+      // `rows_hash` yo'q element eskirmaydi: uning qaysi ma'lumotdan
+      // chiqqani noma'lum, «eskirgan» deb belgilash esa yolg'on
+      // ma'lumot berardi.
+      for (const e of state.results) {
+        if (e.rows_hash) e.stale = e.rows_hash !== joriyXesh;
+      }
+    },
+
+    SET_RESULT_SAVED(state, { id, saved_id }) {
+      const e = state.results.find(x => x.id === id);
+      if (!e) return;
+      e.saved = true;
+      e.saved_id = saved_id ?? e.saved_id;
+    },
+
+    SET_ORDER(state, tartib) {
+      state.resultsOrder = tartib === "eski" ? "eski" : "yangi";
+      tartibniYoz(state.resultsOrder);
     },
 
     SET_TAB(state, tab) {
@@ -153,10 +244,8 @@ export default {
       state.file = null;
       state.schema = { variables: [] };
       state.rows = [];
-      state.result = {
-        type: null, params: null, title: null, meta: null,
-        columns: {}, tables: [], charts: [],
-      };
+      state.results = [];
+      state.activeId = null;
       state.schemaError = null;
       state.saved = true;
       state.analyzing = false;
@@ -323,7 +412,7 @@ export default {
   actions: {
     /* ===== LOAD FILE ===== */
 
-    async open({ commit }, fileId) {
+    async open({ commit, dispatch }, fileId) {
       const res = await api.get(`/files/${fileId}`);
 
       commit("SET_FILE", res.data.file);
@@ -342,6 +431,17 @@ export default {
           ? res.data.rows.map(r => r.selected !== false)
           : [],
       });
+
+      // 🔴 FAYL OCHILGANDA ESKIRGANLIK DARROV HISOBLANADI.
+      // Aks holda foydalanuvchi kecha bajarilgan tahlilni bugungi
+      // (o'zgargan) ma'lumotga tegishli deb o'qirdi. Anonim
+      // foydalanuvchida bu jimgina o'tkazib yuboriladi.
+      try {
+        await dispatch("loadSavedResults");
+      } catch {
+        // Ro'yxat yuklanmasa ham fayl ochilaveradi — tahlil
+        // qilish uchun u shart emas.
+      }
     },
 
     /* ===== SAVE ===== */
@@ -502,7 +602,8 @@ export default {
           saveToProfile: payload.saveToProfile ?? false,
         });
 
-        commit("SET_RESULT", res.data);
+        commit("ADD_RESULT", res.data);
+        return res.data;
       } finally {
         commit("SET_ANALYZING", false);
       }
@@ -543,36 +644,118 @@ export default {
       return res.data;
     },
 
-    // Natijani profilga saqlash (oxirgi tanlangan metod bilan; login talab)
-    async saveResult({ state, dispatch }) {
+    /* ===== NATIJALAR RO'YXATI (08-vazifa) ===== */
+
+    /** Saqlangan natijalarni yuklaydi va ro'yxatga qo'shadi.
+     *
+     * 🔴 ANONIM FOYDALANUVCHIDA CHAQIRILMAYDI. `GET /results` login
+     * talab qiladi (saqlash ham talab qiladi, ya'ni anonim uchun
+     * qaytariladigan narsa yo'q) — chaqirilsa har fayl ochilishida
+     * kutilgan `401` konsolga tushardi.
+     */
+    async loadSavedResults({ state, commit, rootState }) {
       if (!state.file) return;
-      await dispatch("analyze", {
-        type: state.result?.type || "auto",
-        params: state.result?.params || {},
-        saveToProfile: true,
-      });
+      if (!rootState.auth?.user) return;
+
+      const res = await api.get(`/analyze/files/${state.file.id}/results`);
+      const joriy = res.data.current_rows_hash;
+
+      const saqlanganlar = (res.data.items || []).map(item =>
+        natijaElementi(
+          { type: item.type, params: item.params, result: item.result,
+            rows_hash: item.rows_hash, saved_id: item.id },
+          {
+            id: item.id,
+            created_at: item.created_at,
+            saved: true,
+            stale: !!item.rows_hash && item.rows_hash !== joriy,
+            // 🔴 ESKIRGAN ELEMENT SUKUT BO'YICHA BELGILANMAYDI.
+            // Eksport uni JORIY ma'lumot bilan qayta hisoblaydi,
+            // ya'ni hujjatdagi raqam ekrandagidan farq qilishi
+            // mumkin. Belgilangan holda kelsa, foydalanuvchi buni
+            // sezmasdan hisobotga kiritardi.
+            selected: !item.rows_hash || item.rows_hash === joriy,
+          },
+        ),
+      );
+
+      // Sessiyada bajarilgan, lekin saqlanmagan tahlillar yo'qolmasin.
+      const kalitlar = new Set(
+        saqlanganlar.map(e => natijaKaliti(e.type, e.params, e.rows_hash)),
+      );
+      const saqlanmaganlar = state.results.filter(
+        e => !e.saved && !kalitlar.has(natijaKaliti(e.type, e.params, e.rows_hash)),
+      );
+
+      commit("SET_RESULTS", [...saqlanmaganlar, ...saqlanganlar]);
+      commit("MARK_STALE", joriy);
     },
 
-    // Natijani .docx / .pdf sifatida yetkazish (login talab qilinadi).
-    // deliver: "browser" (brauzerdan yuklab olish) | "telegram" (botga yuborish)
-    async exportResult({ state }, { fmt, deliver = "browser" }) {
-      if (!state.file) return;
+    /** Elementni profilga saqlaydi (login talab qilinadi). */
+    async saveResultEntry({ state, commit }, id) {
+      const e = state.results.find(x => x.id === id);
+      if (!state.file || !e) return;
 
-      // oxirgi tanlangan metod va parametrlarini eksportga uzatamiz
-      const type = state.result?.type || "auto";
-      const params = JSON.stringify(state.result?.params || {});
+      const res = await api.post(`/analyze/files/${state.file.id}`, {
+        type: e.type ?? "auto",
+        params: e.params ?? {},
+        saveToProfile: true,
+      });
+      commit("SET_RESULT_SAVED", { id, saved_id: res.data.saved_id });
+      return res.data;
+    },
+
+    /** Elementni o'chiradi — saqlangan bo'lsa serverdan ham. */
+    async deleteResultEntry({ state, commit }, id) {
+      const e = state.results.find(x => x.id === id);
+      if (!e) return;
+
+      if (e.saved && e.saved_id && state.file) {
+        await api.delete(`/analyze/files/${state.file.id}/results/${e.saved_id}`);
+      }
+      commit("REMOVE_RESULT", id);
+    },
+
+    /** Elementni joriy ma'lumot bilan qayta hisoblaydi. */
+    async recomputeEntry({ state, dispatch }, id) {
+      const e = state.results.find(x => x.id === id);
+      if (!e) return;
+      // `analyze` yangi `rows_hash` bilan qaytadi va `ADD_RESULT`
+      // Q2 bo'yicha eski elementni o'rnida yangilaydi yoki yangisini
+      // qo'shib, eskisini `stale` qiladi.
+      return dispatch("analyze", { type: e.type ?? "auto", params: e.params ?? {} });
+    },
+
+    /** Belgilangan natijalarni BITTA hujjatga eksport qiladi.
+     *
+     * 🔴 NATIJA JSON'I YUBORILMAYDI — faqat `(type, params)`.
+     * Server hammasini joriy ma'lumot bilan qayta hisoblaydi, ya'ni
+     * hujjatning barcha jadvallari bitta tanlamadan chiqadi.
+     */
+    async exportSelected({ state, dispatch }, { fmt, deliver = "browser" }) {
+      if (!state.file) return;
+      const tanlangan = state.results.filter(e => e.selected);
+      if (!tanlangan.length) return;
+
+      const items = tanlangan.map(e => ({
+        type: e.type ?? "auto",
+        params: e.params ?? {},
+      }));
 
       if (deliver === "telegram") {
-        const res = await api.get(`/analyze/files/${state.file.id}/export`, {
-          params: { fmt, deliver: "telegram", type, params },
-        });
-        return res.data; // { ok, delivered: "telegram" }
+        const res = await api.post(
+          `/analyze/files/${state.file.id}/export`,
+          { fmt, deliver: "telegram", items },
+        );
+        await dispatch("refreshStale");
+        return res.data;
       }
 
-      const res = await api.get(`/analyze/files/${state.file.id}/export`, {
-        params: { fmt, deliver: "browser", type, params },
-        responseType: "blob",
-      });
+      const res = await api.post(
+        `/analyze/files/${state.file.id}/export`,
+        { fmt, deliver: "browser", items },
+        { responseType: "blob" },
+      );
       const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
       a.href = url;
@@ -581,6 +764,20 @@ export default {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      await dispatch("refreshStale");
+    },
+
+    /** Eksportdan keyin eskirgan elementlarni qayta hisoblaydi.
+     *
+     * Hujjat joriy ma'lumot bilan yasaldi, ya'ni ekrandagi eski
+     * raqamlar endi hujjatdagilar bilan MOS EMAS. Ularni shu
+     * yerda yangilamasak, foydalanuvchi ikki xil raqamni ko'rib,
+     * qaysi biri hujjatga tushganini bilmasdi.
+     */
+    async refreshStale({ state, dispatch }) {
+      for (const e of state.results.filter(x => x.stale && x.selected)) {
+        await dispatch("recomputeEntry", e.id);
+      }
     },
   },
 };
