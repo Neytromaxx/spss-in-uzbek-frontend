@@ -5,6 +5,7 @@ import { useStore } from "vuex";
 import ComputeModal from "./ComputeModal.vue";
 import RecodeModal from "./RecodeModal.vue";
 import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
+import { zahiraIzohi, zahiralanganmi } from "../nomlar";
 
 const store = useStore();
 
@@ -204,6 +205,15 @@ onBeforeUnmount(() => {
                 class="derived-belgi"
                 :title="hosilaIzohi(v)"
               >{{ hosilaBelgisi(v) }}</span>
+              <!-- 🔴 Zahiralangan nom: filtr shartida ishlatib
+                   bo'lmaydi. Sababni SHU YERDA aytamiz — filtr
+                   oynasida xato chiqqanda foydalanuvchi nima
+                   qilishini bilmasdi. -->
+              <span
+                v-if="zahiralanganmi(v.name)"
+                class="zahira-belgi"
+                :title="zahiraIzohi(v.name)"
+              >⚠</span>
               {{ v.name }}
             </td>
 
@@ -452,6 +462,12 @@ onBeforeUnmount(() => {
 .asboblar {
   display: flex;
   gap: 8px;
+}
+
+.zahira-belgi {
+  color: #c08a2e;
+  margin-right: 3px;
+  cursor: help;
 }
 
 .derived-belgi {

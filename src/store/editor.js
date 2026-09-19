@@ -33,6 +33,17 @@ export default {
 
     rows: [],
 
+    // Select Cases filtri (07-vazifa).
+    //
+    // `filter` — fayldagi ta'rif: {expression, enabled, updated_at}
+    //   yoki `null` (hech qachon yozilmagan).
+    // `rowSelected` — har qator uchun bayroq, FAQAT filtr yoqilgan
+    //   bo'lsa to'ladi. Uni frontend o'zi hisoblamaydi: shart
+    //   backendda baholanadi, aks holda jadvalda chizilgan qatorlar
+    //   tahlilga kirganlaridan farq qilib qolishi mumkin edi.
+    filter: null,
+    rowSelected: [],
+
     // BACKEND FORMATGA MOS — shakli `SET_RESULT` bilan bir xil bo'lsin,
     // aks holda komponentlar `undefined` bilan ishlashga majbur bo'ladi.
     result: {
@@ -127,6 +138,11 @@ export default {
 
     SET_ANALYZING(state, v) {
       state.analyzing = v;
+    },
+
+    SET_FILTER(state, { filter, rowSelected }) {
+      state.filter = filter || null;
+      state.rowSelected = rowSelected || [];
     },
 
     SET_SCHEMA_ERROR(state, v) {
@@ -318,6 +334,14 @@ export default {
         "SET_ROWS",
         res.data.rows.map(r => r.values)
       );
+      commit("SET_FILTER", {
+        filter: res.data.filter,
+        // `selected` faqat filtr yoqilganda keladi; yo'q bo'lsa
+        // bo'sh ro'yxat qoladi va hech bir qator chizilmaydi.
+        rowSelected: res.data.rows.some(r => "selected" in r)
+          ? res.data.rows.map(r => r.selected !== false)
+          : [],
+      });
     },
 
     /* ===== SAVE ===== */
@@ -407,6 +431,45 @@ export default {
       // haqiqat manbai bo'lardi.
       await dispatch("open", state.file.id);
       return res.data;
+    },
+
+    async previewFilter({ state }, { expression }) {
+      // Saqlamasdan sanaydi. Foydalanuvchi filtrni YOQISHDAN OLDIN
+      // nechta qator qolishini ko'rishi kerak: yoqib qo'yib, keyin
+      // barcha tahlillar «mos qator topilmadi» deb yiqilishini
+      // kutish yomon oqim.
+      if (!state.file) return null;
+      const res = await api.post(`/files/${state.file.id}/filter:preview`, {
+        expression,
+      });
+      return res.data;
+    },
+
+    async saveFilter({ state, dispatch }, { expression, enabled = true }) {
+      if (!state.file) return null;
+      const res = await api.put(`/files/${state.file.id}/filter`, {
+        expression,
+        enabled,
+      });
+      // Faylni qayta o'qiymiz: qator bayroqlari serverdan keladi.
+      await dispatch("open", state.file.id);
+      return res.data;
+    },
+
+    async deleteFilter({ state, dispatch }) {
+      if (!state.file) return;
+      await api.delete(`/files/${state.file.id}/filter`);
+      await dispatch("open", state.file.id);
+    },
+
+    async toggleFilter({ state, dispatch }) {
+      // 🔴 O'chirish SHARTNI YO'QOTMAYDI — `enabled` almashadi,
+      // matn joyida qoladi. Butunlay olib tashlash `deleteFilter` da.
+      if (!state.filter?.expression) return;
+      await dispatch("saveFilter", {
+        expression: state.filter.expression,
+        enabled: !state.filter.enabled,
+      });
     },
 
     async saveRows({ state, commit }) {
