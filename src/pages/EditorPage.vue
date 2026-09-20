@@ -20,7 +20,7 @@ async function openTab(tab) {
 
   if (
     tab === "results" &&
-    (store.state.editor.result.tables?.length ?? 0) === 0 &&
+    store.state.editor.results.length === 0 &&
     store.state.editor.schema.variables.length > 0 &&
     store.state.editor.rows.length > 0
   ) {
