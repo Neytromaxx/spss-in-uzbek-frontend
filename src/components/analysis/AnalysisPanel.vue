@@ -2,6 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 import { xatoMatni } from "../../api/errors";
+import { olchovNomi } from "../../olchov";
 
 const store = useStore();
 
@@ -61,10 +62,6 @@ watch(method, () => {
   groupVar.value = "";
   error.value = "";
 });
-
-function measureLabel(m) {
-  return { scale: "raqamli", nominal: "nominal", ordinal: "tartibli" }[m] || m;
-}
 
 function validate() {
   error.value = "";
@@ -180,7 +177,7 @@ defineExpose({ run });
         <label v-for="v in variables" :key="v.name" class="var-chk">
           <input type="checkbox" :value="v.name" v-model="selected" />
           <span class="vn">{{ v.label || v.name }}</span>
-          <span class="vm">{{ measureLabel(v.measure) }}</span>
+          <span class="vm">{{ olchovNomi(v.measure) }}</span>
         </label>
       </div>
     </template>

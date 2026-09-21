@@ -49,6 +49,7 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | `errors.spec.js` | Backend xatosining uch xil shakli o'qiladigan matnga aylanishi |
 | `editor-store.spec.js` | `ADD_RESULT` natijadan hech qanday maydonni tashlab yubormasligi |
 | `results-list.spec.js` | Natijalar ro'yxati: dubl, eskirganlik, tanlash, eksport |
+| `sozlamalar.spec.js` | O'lchov nomlari, nom prefiksi tekshiruvi, profil sahifasi |
 | `analysis-panel.spec.js` | Panel backend kutgan ANIQ parametr nomlarini yuborishi |
 | `dataset-import.spec.js` | Manbadan fayl yaratish amallari va rol getteri |
 | `dataset-modal.spec.js` | Import oynasi: uchta manba, kampaniya tanlash, bo'sh kampaniya himoyasi |
@@ -69,6 +70,73 @@ qo'riqlaydi — kod ishlaydi, lekin noto'g'ri yoki kam natija beradi:
 > ⚠️ `analysis-panel.spec.js` dagi metodlar ro'yxati qo'lda yozilgan, chunki
 > u boshqa repodagi `engine.ANALYSES` ga tegishli. Backendga yangi metod
 > qo'shilsa, bu ro'yxatni ham yangilang.
+
+---
+
+## Interfeys tili va sozlamalar
+
+### O'lchov nomlari — `src/olchov.js`
+
+Bu nomlar ilgari **uchta joyda, uch xil** yozilgan edi:
+
+| Joy | scale | nominal | ordinal |
+| --- | --- | --- | --- |
+| `VariablesTab`, `ComputeModal` | `Scale` | `Nominal` | `Ordinal` |
+| `AnalysisPanel` | `raqamli` | `nominal` | `tartibli` |
+| `ImportPreview` | `Raqamli` | **`Matn`** | `Tartibli` |
+
+Uchinchisi nomuvofiq emas, **xato** ham edi: nominal shkala «matn»
+degani emas — u tartibsiz toifa (1 = erkak, 2 = ayol ham nominal).
+
+O'lchov darajasi bezak emas: `AnalysisPanel` metod ro'yxatini,
+`DataTab` esa katak muharririni aynan shunga qarab tanlaydi.
+Foydalanuvchi uni bir ekranda «Matn», ikkinchisida «Nominal» deb
+ko'rsa, ikki xil narsa deb o'ylaydi.
+
+Endi bitta manba: `OLCHOV_NOMI` = Miqdoriy / Tartibli / Nominal.
+`nominal` o'zbek statistika adabiyotidagi shaklda qoldirildi;
+`scale` uchun «Miqdoriy», chunki «Shkala» uchala darajaga ham
+tegishli so'z.
+
+### 🔴 Nom prefiksida apostrof bo'lmaydi
+
+Yangi o'zgaruvchi nomi (`ozg_1`, `ozg_2`) Profil → Sozlamalar
+bo'limida sozlanadi. Prefiks ASCII bo'lishi **shart**:
+
+Nom filtr va Compute ifodalarida token bo'lib tahlil qilinadi
+(backend `expr/tokenizer.py`: `[harf|_][harf|raqam|_]*`). Oddiy
+apostrof harf emas, ya'ni `o'zg_1 > 5` sharti «kutilmagan belgi»
+xatosini berardi. Tipografik `ʻ` (U+02BB) texnik jihatdan
+o'tadi, lekin klaviaturada oddiy `'` teriladi va nom topilmay
+qolardi — ya'ni xato ustun yasalganda emas, ancha keyin, filtr
+yozilganda chiqardi.
+
+Shuning uchun `prefiksXatosi()` apostrofni rad etadi va sababini
+aytadi. Zahiralangan so'z (`and`, `or`, `not`, `to`) ham prefiks
+bo'la olmaydi.
+
+Ko'rinadigan matnlar — sarlavhalar, yorliqlar, tugmalar — to'liq
+o'zbekcha; faqat **nomning o'zi** ASCII.
+
+### Nom to'qnashuvi
+
+`yangiNom(mavjudNomlar, prefiks)` **band bo'lmagan birinchi**
+raqamni oladi. Eski kod `uzunlik + 1` ishlatardi: ikkita ustun
+qo'shib, birinchisini o'chirsangiz, keyingisi mavjudi bilan
+to'qnashardi.
+
+### Sozlamalar qayerda saqlanadi
+
+`localStorage`, hisobda emas — ular anonim foydalanuvchida ham
+kerak (tahlil login talab qilmaydi):
+
+| Kalit | Nima |
+| --- | --- |
+| `mtt.sozlamalar.nomPrefiksi` | yangi o'zgaruvchi nomi prefiksi |
+| `mtt.results.order` | natijalar ro'yxati tartibi |
+
+Buzuq yoki eski qiymat o'qilganda sukutga qaytiladi — aks holda
+ilova yaroqsiz nom yasab qo'yardi.
 
 ---
 

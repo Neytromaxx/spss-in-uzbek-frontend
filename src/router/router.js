@@ -2,12 +2,14 @@ import { createRouter, createWebHistory } from "vue-router";
 import FilesPage from "../pages/FilesPage.vue";
 import EditorPage from "../pages/EditorPage.vue";
 import InfoPage from "../pages/InfoPage.vue";
+import ProfilPage from "../pages/ProfilPage.vue";
 import store from "../store";
 
 const routes = [
   { path: "/", component: FilesPage },
   { path: "/files/:id", component: EditorPage, props: true },
   { path: "/info", component: InfoPage },
+  { path: "/profil", component: ProfilPage },
 ];
 
 const router = createRouter({
