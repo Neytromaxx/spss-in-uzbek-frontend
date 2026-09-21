@@ -19,6 +19,7 @@ import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 
 import { xatoMatni } from "../api/errors";
+import { OLCHOVLAR } from "../olchov";
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(["close"]);
@@ -294,9 +295,9 @@ function toifaNomi(kalit) {
         <label>
           O‘lchov
           <select v-model="olchov">
-            <option value="nominal">Nominal</option>
-            <option value="ordinal">Ordinal</option>
-            <option value="scale">Scale</option>
+            <option v-for="o in OLCHOVLAR" :key="o.key" :value="o.key">
+              {{ o.nomi }}
+            </option>
           </select>
         </label>
       </div>

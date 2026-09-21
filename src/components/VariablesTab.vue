@@ -6,6 +6,8 @@ import ComputeModal from "./ComputeModal.vue";
 import RecodeModal from "./RecodeModal.vue";
 import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 import { zahiraIzohi, zahiralanganmi } from "../nomlar";
+import { OLCHOVLAR } from "../olchov";
+import { yangiNom } from "../sozlamalar";
 
 const store = useStore();
 
@@ -52,10 +54,16 @@ function missingXulosa(v) {
    ADD VARIABLE (EXPOSED)
 ================================ */
 function addVariable() {
-  const index = variables.value.length + 1;
-
+  // 🔴 NOM BAND BO'LMAGANLARIDAN OLINADI, `uzunlik + 1` dan emas.
+  // Ikkita ustun qo'shib, birinchisini o'chirib, yana qo'shsangiz
+  // eskisi ikkinchi marta yasalardi.
+  //
+  // Prefiks sozlamadan keladi (Profil → Sozlamalar), sukut `ozg`.
   store.commit("editor/ADD_VARIABLE", {
-    name: `var_${index}`,
+    name: yangiNom(
+      variables.value.map(v => v.name),
+      store.state.sozlamalar.nomPrefiksi,
+    ),
     type: "numeric",
     label: "",
     measure: "scale",
@@ -187,10 +195,10 @@ onBeforeUnmount(() => {
     <table v-else class="vars-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Label</th>
-          <th>Measure</th>
-          <th>Values</th>
+          <th>Nom</th>
+          <th>Yorliq</th>
+          <th>O‘lchov</th>
+          <th>Qiymatlar</th>
           <th>Yo‘q qiymatlar</th>
         </tr>
       </thead>
@@ -220,7 +228,7 @@ onBeforeUnmount(() => {
             <td>
               <input
                 :value="v.label"
-                placeholder="Label"
+                placeholder="Yorliq"
                 @input="updateVar(i, 'label', $event.target.value)"
               />
             </td>
@@ -230,9 +238,9 @@ onBeforeUnmount(() => {
                 :value="v.measure"
                 @change="updateVar(i, 'measure', $event.target.value)"
               >
-                <option value="nominal">Nominal</option>
-                <option value="ordinal">Ordinal</option>
-                <option value="scale">Scale</option>
+                <option v-for="o in OLCHOVLAR" :key="o.key" :value="o.key">
+                  {{ o.nomi }}
+                </option>
               </select>
             </td>
 
@@ -266,7 +274,7 @@ onBeforeUnmount(() => {
                   <span class="value-key">{{ key }}</span>
                   <input
                     :value="label"
-                    placeholder="Label"
+                    placeholder="Yorliq"
                     @input="updateValue(i, key, $event.target.value)"
                   />
                   <button
@@ -278,7 +286,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <button class="small" @click="addValue(i)">
-                  + Value qo‘shish
+                  + Qiymat qo‘shish
                 </button>
               </div>
             </td>

@@ -22,10 +22,6 @@ const isLibrarian = computed(() => store.getters["auth/isLibrarian"]);
 function openLogin() {
   store.commit("auth/SET_LOGIN_VISIBLE", true);
 }
-function logout() {
-  store.dispatch("auth/logout");
-}
-
 onMounted(() => {
   store.dispatch("files/load");
 });
@@ -67,10 +63,19 @@ function onImported(file) {
       </div>
       <div class="auth-box">
         <template v-if="isAuth">
-          <span class="who">{{ displayName }}</span>
-          <button class="ghost-sm" @click="logout">Chiqish</button>
+          <!-- Ism endi PROFILGA olib boradi. «Chiqish» o'sha
+               yerda: navda turganda uni tasodifan bosish oson
+               edi, tasdiq esa yo'q. -->
+          <button class="who" @click="router.push('/profil')">
+            {{ displayName }}
+          </button>
         </template>
-        <button v-else class="ghost-sm" @click="openLogin">Kirish</button>
+        <template v-else>
+          <button class="ghost-sm" @click="router.push('/profil')">
+            Sozlamalar
+          </button>
+          <button class="ghost-sm" @click="openLogin">Kirish</button>
+        </template>
       </div>
     </nav>
 
@@ -183,6 +188,15 @@ function onImported(file) {
 .who {
   font-size: .82rem;
   color: var(--t2);
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ghost-sm {
   background: transparent;
