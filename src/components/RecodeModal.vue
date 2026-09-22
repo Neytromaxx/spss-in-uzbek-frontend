@@ -296,7 +296,7 @@ function toifaNomi(kalit) {
           O‘lchov
           <select v-model="olchov">
             <option v-for="o in OLCHOVLAR" :key="o.key" :value="o.key">
-              {{ o.nomi }}
+              {{ o.nom }} ({{ o.texnik }})
             </option>
           </select>
         </label>

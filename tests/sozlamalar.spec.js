@@ -23,7 +23,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createStore } from "vuex";
 
-import { OLCHOVLAR, OLCHOV_NOMI, olchovNomi } from "../src/olchov";
+import { OLCHOV, OLCHOVLAR, olchovMisoli, olchovNomi, olchovYorligi } from "../src/olchov";
 import {
   MAX_PREFIKS,
   SUKUT_PREFIKS,
@@ -34,28 +34,56 @@ import {
 import sozlamalar from "../src/store/sozlamalar";
 import ProfilPage from "../src/pages/ProfilPage.vue";
 import VariablesTab from "../src/components/VariablesTab.vue";
+import ComputeModal from "../src/components/ComputeModal.vue";
+import RecodeModal from "../src/components/RecodeModal.vue";
 
 beforeEach(() => localStorage.clear());
 
 // ══════════════════════ o'lchov nomlari ══════════════════════
 
 describe("olchovNomi", () => {
-  it("uchala daraja ham o'zbekcha", () => {
-    expect(olchovNomi("scale")).toBe("Miqdoriy");
-    expect(olchovNomi("ordinal")).toBe("Tartibli");
-    expect(olchovNomi("nominal")).toBe("Nominal");
+  it("🔴 NOMLAR ODDIY TILDA", () => {
+    // `Nominal / Ordinal / Scale` statistika o'rganmagan odam
+    // uchun ma'nosiz so'zlar: u qaysi biri o'z ustuniga tegishli
+    // ekanini bilmaydi va tur tanlash bosqichi devorga aylanadi.
+    expect(olchovNomi("nominal")).toBe("Guruh kodi");
+    expect(olchovNomi("ordinal")).toBe("Tartib / baho");
+    expect(olchovNomi("scale")).toBe("O'lchov / ball");
+  });
+
+  it("🔴 TEXNIK ATAMA QAVSDA QOLADI", () => {
+    // SPSS bilan ishlagan foydalanuvchi «Guruh kodi» nimaligini
+    // taxmin qilib o'tirmasin.
+    expect(olchovYorligi("nominal")).toBe("Guruh kodi (Nominal)");
+    expect(olchovYorligi("scale")).toBe("O'lchov / ball (Scale)");
+  });
+
+  it("misol har bir daraja uchun qaytadi", () => {
+    expect(olchovMisoli("nominal")).toBe("1 = erkak, 2 = ayol");
+    expect(olchovMisoli("scale")).toBe("yosh, test balli");
+    expect(olchovMisoli("interval")).toBe("");
+  });
+
+  it("har bir darajada uchala maydon ham bor", () => {
+    for (const o of Object.values(OLCHOV)) {
+      expect(o.nom).toBeTruthy();
+      expect(o.texnik).toBeTruthy();
+      expect(o.misol).toBeTruthy();
+    }
   });
 
   it("🔴 nominal «Matn» EMAS", () => {
     // Nominal shkala — tartibsiz TOIFA, matn emas: raqam bilan
     // kodlangan nominal ham bo'ladi (1 = erkak, 2 = ayol).
     expect(olchovNomi("nominal")).not.toBe("Matn");
+    expect(OLCHOV.nominal.misol).toContain("erkak");
   });
 
   it("noma'lum daraja o'z kaliti bilan chiqadi", () => {
     // Backend yangi daraja qo'shsa, ekranda bo'sh joy qolmasin.
     expect(olchovNomi("interval")).toBe("interval");
     expect(olchovNomi(null)).toBe("");
+    expect(olchovYorligi("interval")).toBe("interval");
   });
 
   it("ro'yxat kuchli shkaladan kuchsizga", () => {
@@ -64,7 +92,7 @@ describe("olchovNomi", () => {
 
   it("ro'yxatdagi nom lug'atdagi bilan bir xil", () => {
     // Ikkita eksport bir manbadan chiqsin.
-    for (const o of OLCHOVLAR) expect(o.nomi).toBe(OLCHOV_NOMI[o.key]);
+    for (const o of OLCHOVLAR) expect(o.nom).toBe(OLCHOV[o.key].nom);
   });
 });
 
@@ -86,11 +114,12 @@ describe("🔴 o'lchov nomi BITTA joyda", () => {
 
   it.each(FAYLLAR)("%s o'lchov nomini qo'lda yozmaydi", yol => {
     const manba = readFileSync(resolve(__dirname, "..", yol), "utf8");
-    for (const kalit of Object.keys(OLCHOV_NOMI)) {
+    for (const kalit of Object.keys(OLCHOV)) {
       expect(manba).not.toContain(`<option value="${kalit}">`);
     }
-    for (const nomi of Object.values(OLCHOV_NOMI)) {
-      expect(manba).not.toContain(`"${nomi}"`);
+    for (const o of Object.values(OLCHOV)) {
+      expect(manba).not.toContain(`>${o.texnik}<`);
+      expect(manba).not.toContain(`"${o.nom}"`);
     }
   });
 });
@@ -254,7 +283,14 @@ describe("VariablesTab — sarlavhalar", () => {
   it("o'lchov ro'yxati `olchov.js` dan", () => {
     const { w } = tahrir([{ name: "yosh", label: "", measure: "scale", values: null }]);
     const variantlar = w.findAll("tbody select option").map(o => o.text());
-    expect(variantlar).toEqual(OLCHOVLAR.map(o => o.nomi));
+    expect(variantlar).toEqual(OLCHOVLAR.map(o => `${o.nom} (${o.texnik})`));
+  });
+
+  it("🔴 TANLANGAN TURNING MISOLI KO'RINADI", () => {
+    // Foydalanuvchi «Guruh kodi» nimaligini taxmin qilmasin —
+    // `1 = erkak, 2 = ayol` bitta qarashda tanitadi.
+    const { w } = tahrir([{ name: "jins", label: "", measure: "nominal", values: null }]);
+    expect(w.find(".olchov-misoli").text()).toBe(olchovMisoli("nominal"));
   });
 
   it("yorliq maydonining ko'rsatmasi o'zbekcha", () => {
@@ -382,5 +418,50 @@ describe("ProfilPage", () => {
     const w = profil();
     await w.find("#prefiks").setValue("col");
     expect(w.find(".link").text()).toContain(SUKUT_PREFIKS);
+  });
+});
+
+
+// ══════════════════════ Compute / Recode oynalari ══════════════════════
+//
+// Ikkalasida ham o'lchov tanlovi bor va ikkalasi ham ilgari
+// `<option value="scale">Scale</option>` ni QO'LDA yozardi.
+// Manba tekshiruvi nusxani topadi, bu yerdagi testlar esa
+// chizilgan YORLIQNI tekshiradi — qavsdagi texnik atama
+// tushib qolmasin.
+
+function modalDokon() {
+  return createStore({
+    modules: {
+      editor: {
+        namespaced: true,
+        state: () => ({
+          schema: { variables: [{ name: "yosh", measure: "scale" }] },
+          rows: [],
+          file: { id: "f1" },
+        }),
+        actions: {
+          previewCompute: vi.fn(), computeVariable: vi.fn(),
+          previewRecode: vi.fn(), recodeVariable: vi.fn(),
+        },
+      },
+    },
+  });
+}
+
+describe.each([
+  ["ComputeModal", ComputeModal],
+  ["RecodeModal", RecodeModal],
+])("%s — o'lchov tanlovi", (_nom, Komponent) => {
+  it("yorliqlar `olchov.js` dagi shaklda", () => {
+    const w = mount(Komponent, {
+      props: { open: true },
+      global: { plugins: [modalDokon()] },
+    });
+    const yorliqlar = w.findAll("option")
+      .map(o => o.text())
+      .filter(t => OLCHOVLAR.some(x => t.startsWith(x.nom)));
+
+    expect(yorliqlar).toEqual(OLCHOVLAR.map(o => olchovYorligi(o.key)));
   });
 });

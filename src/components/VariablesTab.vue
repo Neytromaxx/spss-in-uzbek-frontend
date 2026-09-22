@@ -6,7 +6,7 @@ import ComputeModal from "./ComputeModal.vue";
 import RecodeModal from "./RecodeModal.vue";
 import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 import { zahiraIzohi, zahiralanganmi } from "../nomlar";
-import { OLCHOVLAR } from "../olchov";
+import { OLCHOVLAR, olchovMisoli } from "../olchov";
 import { yangiNom } from "../sozlamalar";
 
 const store = useStore();
@@ -239,9 +239,12 @@ onBeforeUnmount(() => {
                 @change="updateVar(i, 'measure', $event.target.value)"
               >
                 <option v-for="o in OLCHOVLAR" :key="o.key" :value="o.key">
-                  {{ o.nomi }}
+                  {{ o.nom }} ({{ o.texnik }})
                 </option>
               </select>
+              <!-- Misol tanlovning OSTIDA: foydalanuvchi «Guruh
+                   kodi» nimaligini taxmin qilmasin, ko'rsin. -->
+              <div class="olchov-misoli">{{ olchovMisoli(v.measure) }}</div>
             </td>
 
             <td>
@@ -447,6 +450,11 @@ onBeforeUnmount(() => {
   margin-bottom: 8px;
 }
 
+.olchov-misoli {
+  font-size: .68rem;
+  color: var(--t3);
+  margin-top: 3px;
+}
 .value-key {
   width: 36px;
   font-family: 'JetBrains Mono', monospace;
