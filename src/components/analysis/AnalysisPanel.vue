@@ -3,15 +3,12 @@ import { ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 import { xatoMatni } from "../../api/errors";
 import { olchovNomi } from "../../olchov";
+import { TAHLILLAR, ajrat, rolTalabi } from "../../tahlil-rollari";
 
 const store = useStore();
 
 const variables = computed(() => store.state.editor.schema.variables || []);
 const analyzing = computed(() => store.state.editor.analyzing);
-const scaleVars = computed(() => variables.value.filter((v) => v.measure === "scale"));
-const groupVars = computed(() =>
-  variables.value.filter((v) => v.measure === "nominal" || v.measure === "ordinal")
-);
 
 const method = ref("auto");
 const corrMethod = ref("pearson");
@@ -22,24 +19,6 @@ const dependent = ref("");
 const groupVar = ref("");
 const error = ref("");
 
-const METHODS = [
-  { key: "auto", label: "Avtomatik (tavsifiy + chastota)" },
-  { key: "correlation", label: "Korrelyatsiya" },
-  { key: "reliability", label: "Ishonchlilik (Kronbax alfa)" },
-  { key: "partial_correlation", label: "Qisman korrelyatsiya" },
-  { key: "normality", label: "Normallik testi" },
-  { key: "ttest_ind", label: "Bog'liqsiz t-test" },
-  { key: "ttest_paired", label: "Juft t-test" },
-  { key: "anova_oneway", label: "Bir omilli ANOVA" },
-  { key: "mannwhitney", label: "Mann-Uitni U (noparametrik)" },
-  { key: "wilcoxon", label: "Uilkokson (noparametrik juft)" },
-  { key: "kruskal", label: "Kruskal-Uollis H (noparametrik)" },
-  { key: "friedman", label: "Fridman (noparametrik takroriy)" },
-  { key: "crosstab", label: "Kesishma jadvali + xi-kvadrat" },
-  { key: "chi_gof", label: "Xi-kvadrat moslik testi" },
-  { key: "fisher", label: "Fisher aniq testi (2×2)" },
-  { key: "regression_linear", label: "Chiziqli regressiya" },
-];
 
 const needsVars = computed(() =>
   ["correlation", "reliability", "partial_correlation", "normality",
@@ -47,6 +26,22 @@ const needsVars = computed(() =>
    "regression_linear"].includes(method.value)
 );
 const needsControls = computed(() => method.value === "partial_correlation");
+
+// Ekrandagi maydon → backend `params` dagi rol kaliti.
+//
+// 🔴 RO'YXATLAR ENDI `tahlil-rollari.js` DAN HOSIL BO'LADI.
+//
+// Ilgari ular qotirilgan edi: bog'liq o'zgaruvchi uchun DOIM
+// faqat `scale`. Mann-Uitni va Kruskal esa backendda `ordinal`
+// ni ham qabul qiladi — ya'ni Likert bandi, noparametrik test
+// aynan uning uchun mo'ljallangan bo'lsa-da, ro'yxatda
+// ko'rinmasdi. Frontend statistik jihatdan TO'G'RI
+// foydalanishni to'sib qo'ygan edi.
+const depVars = computed(() => ajrat(variables.value, method.value, "dependent").mos);
+const groupVars = computed(() => ajrat(variables.value, method.value, "group").mos);
+
+const depTalabi = computed(() => rolTalabi(method.value, "dependent"));
+const groupTalabi = computed(() => rolTalabi(method.value, "group"));
 const needsDepGroup = computed(() =>
   ["ttest_ind", "anova_oneway", "mannwhitney", "kruskal"].includes(method.value)
 );
@@ -127,7 +122,7 @@ defineExpose({ run });
   <div class="panel">
     <label class="lbl">Tahlil turi</label>
     <select v-model="method" class="method-select">
-      <option v-for="m in METHODS" :key="m.key" :value="m.key">{{ m.label }}</option>
+      <option v-for="m in TAHLILLAR" :key="m.key" :value="m.key">{{ m.label }}</option>
     </select>
 
     <!-- Korrelyatsiya usuli -->
@@ -154,16 +149,16 @@ defineExpose({ run });
 
     <!-- Bog'liq o'zgaruvchi (t-test, ANOVA, regressiya) -->
     <template v-if="needsDepGroup || isRegression">
-      <label class="lbl">Bog'liq o'zgaruvchi (raqamli)</label>
+      <label class="lbl">Bog'liq o'zgaruvchi ({{ depTalabi }})</label>
       <select v-model="dependent">
         <option value="">— tanlang —</option>
-        <option v-for="v in scaleVars" :key="v.name" :value="v.name">{{ v.label || v.name }}</option>
+        <option v-for="v in depVars" :key="v.name" :value="v.name">{{ v.label || v.name }}</option>
       </select>
     </template>
 
     <!-- Guruhlovchi (t-test, ANOVA) -->
     <template v-if="needsDepGroup">
-      <label class="lbl">Guruhlovchi o'zgaruvchi</label>
+      <label class="lbl">Guruhlovchi o'zgaruvchi ({{ groupTalabi }})</label>
       <select v-model="groupVar">
         <option value="">— tanlang —</option>
         <option v-for="v in groupVars" :key="v.name" :value="v.name">{{ v.label || v.name }}</option>
