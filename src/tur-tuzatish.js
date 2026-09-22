@@ -32,7 +32,7 @@ import { rolTurlari } from "./tahlil-rollari";
 // mumkin.
 //
 // ⚠️ Bu chegara backenddagi import qoidasi bilan bir xil
-// (`csv_import._MAX_TOIFA`): 7 va 10 balli Likert, 2–5 ta guruh
+// (`csv_import.MAX_TOIFA`): 7 va 10 balli Likert, 2–5 ta guruh
 // kodi qamraladi. Ikki tilda yozilgan, shuning uchun biri
 // o'zgarsa ikkinchisi ham o'zgarsin.
 export const MAX_TOIFA = 10;
@@ -52,8 +52,8 @@ export function qiymatSoni(rows, nom) {
  *
  * Ikkita shart: xil qiymatlar KAM va kamida bittasi TAKRORLANADI.
  *
- * ⚠️ Bu — backenddagi import qoidasining (`csv_import`,
- * 4-bosqich) aynan o'zi. Takrorlanish sharti kichik tanlamani
+ * ⚠️ Bu — backenddagi import qoidasining
+ * (`csv_import._olchov_turi`) aynan o'zi. Takrorlanish sharti kichik tanlamani
  * himoya qiladi: 8 qatorli faylda 8 xil yosh (18–25) takrorsiz,
  * ya'ni u guruh kodi emas, o'lchov. Usiz `yosh` ustuniga «guruh
  * kodi qilish» taklif qilinardi.
