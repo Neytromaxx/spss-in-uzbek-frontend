@@ -26,7 +26,7 @@ import {
   rolTalabi,
   rolTurlari,
 } from "../src/tahlil-rollari";
-import { OLCHOV_NOMI } from "../src/olchov";
+import { OLCHOV, olchovNomi } from "../src/olchov";
 import AnalysisPanel from "../src/components/analysis/AnalysisPanel.vue";
 
 // ══════════════════════ backend bilan moslik ══════════════════════
@@ -109,7 +109,7 @@ describe("katalog izchilligi", () => {
   });
 
   it("har bir ruxsat ro'yxati haqiqiy o'lchov turlaridan", () => {
-    const turlar = Object.keys(OLCHOV_NOMI);
+    const turlar = Object.keys(OLCHOV);
     for (const rollar of Object.values(ROLLAR)) {
       for (const ruxsat of Object.values(rollar)) {
         expect(ruxsat.length).toBeGreaterThan(0);
@@ -166,8 +166,8 @@ describe("ajrat", () => {
 describe("rolTalabi", () => {
   it("oddiy tilda aytadi", () => {
     expect(rolTalabi("mannwhitney", "dependent"))
-      .toBe(`${OLCHOV_NOMI.scale} yoki ${OLCHOV_NOMI.ordinal}`);
-    expect(rolTalabi("ttest_ind", "dependent")).toBe(OLCHOV_NOMI.scale);
+      .toBe(`${olchovNomi("scale")} yoki ${olchovNomi("ordinal")}`);
+    expect(rolTalabi("ttest_ind", "dependent")).toBe(olchovNomi("scale"));
   });
 });
 
