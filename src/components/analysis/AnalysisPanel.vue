@@ -4,6 +4,7 @@ import { useStore } from "vuex";
 import { xatoMatni } from "../../api/errors";
 import { olchovNomi } from "../../olchov";
 import { TAHLILLAR, ajrat, rolTalabi } from "../../tahlil-rollari";
+import { tuzatildiXabari, tuzatish } from "../../tur-tuzatish";
 
 const store = useStore();
 
@@ -37,8 +38,106 @@ const needsControls = computed(() => method.value === "partial_correlation");
 // aynan uning uchun mo'ljallangan bo'lsa-da, ro'yxatda
 // ko'rinmasdi. Frontend statistik jihatdan TO'G'RI
 // foydalanishni to'sib qo'ygan edi.
-const depVars = computed(() => ajrat(variables.value, method.value, "dependent").mos);
-const groupVars = computed(() => ajrat(variables.value, method.value, "group").mos);
+const rows = computed(() => store.state.editor.rows || []);
+
+// Ekrandagi maydon → backend `params` dagi rol kaliti.
+const ROYXAT_ROLI = {
+  reliability: "items",
+  regression_linear: "predictors",
+};
+const varsRol = computed(() => ROYXAT_ROLI[method.value] || "variables");
+
+function bolim(rol) {
+  return ajrat(variables.value, method.value, rol);
+}
+
+/** Mos kelmaganlar — sabab va tuzatish bilan. */
+function nomoslar(rol) {
+  return bolim(rol).nomos.map(v => ({
+    ozgaruvchi: v,
+    rol,
+    ...tuzatish(method.value, rol, v, rows.value),
+  }));
+}
+
+const depVars = computed(() => bolim("dependent").mos);
+const groupVars = computed(() => bolim("group").mos);
+const depNomos = computed(() => nomoslar("dependent"));
+const groupNomos = computed(() => nomoslar("group"));
+
+// Belgilash katakchalarida hammasi KO'RINADI — mos kelmagani
+// o'chirilgan holda. Yashirilsa, foydalanuvchi o'zgaruvchisi
+// qayoqqa ketganini tushunmasdi.
+const varsHolati = computed(() => {
+  const rol = varsRol.value;
+  const nomosNomlari = new Set(bolim(rol).nomos.map(v => v.name));
+  return variables.value.map(v => ({
+    ozgaruvchi: v,
+    mos: !nomosNomlari.has(v.name),
+    ...(nomosNomlari.has(v.name) ? tuzatish(method.value, rol, v, rows.value) : {}),
+    rol,
+  }));
+});
+
+const controlsHolati = computed(() => {
+  const nomosNomlari = new Set(bolim("control").nomos.map(v => v.name));
+  return variables.value.map(v => ({
+    ozgaruvchi: v,
+    mos: !nomosNomlari.has(v.name),
+    ...(nomosNomlari.has(v.name) ? tuzatish(method.value, "control", v, rows.value) : {}),
+    rol: "control",
+  }));
+});
+
+/* ===============================
+   TURNI BIR BOSISHDA TUZATISH
+================================ */
+
+// 🔴 SAQLASHNI O'ZIMIZ CHAQIRAMIZ.
+//
+// Sxema avtosaqlanadi, lekin watcher `VariablesTab` ICHIDA va u
+// Tahlil yorlig'ida `v-if` bilan unmount qilingan. Ya'ni bu
+// yerdan qilingan o'zgarish serverga yetib bormasdi: ekranda
+// tuzatilgandek ko'rinardi, sahifa yangilanganda esa qaytib
+// kelardi.
+const tuzatildi = ref(null); // { nom, target, eski, index }
+
+async function turniYoz(index, qiymat) {
+  store.commit("editor/UPDATE_VARIABLE", { index, key: "measure", value: qiymat });
+  try {
+    await store.dispatch("editor/saveSchema");
+  } catch (e) {
+    error.value = xatoMatni(e, "Turni saqlashda xatolik");
+  }
+}
+
+async function turniTuzat(element) {
+  const v = element.ozgaruvchi;
+  const index = variables.value.findIndex(x => x.name === v.name);
+  if (index < 0 || !element.target) return;
+
+  const eski = v.measure;
+  await turniYoz(index, element.target);
+  tuzatildi.value = {
+    nom: v.label || v.name,
+    target: element.target,
+    eski,
+    index,
+  };
+}
+
+async function tuzatishniBekor() {
+  const t = tuzatildi.value;
+  tuzatildi.value = null;
+  if (!t) return;
+  // `eski` `undefined` bo'lishi mumkin — o'lchovi umuman
+  // aniqlanmagan ustun. O'sha holatga qaytariladi.
+  await turniYoz(t.index, t.eski);
+}
+
+const tuzatishXabari = computed(() =>
+  tuzatildi.value ? tuzatildiXabari(tuzatildi.value.nom, tuzatildi.value.target) : "",
+);
 
 const depTalabi = computed(() => rolTalabi(method.value, "dependent"));
 const groupTalabi = computed(() => rolTalabi(method.value, "group"));
@@ -55,6 +154,7 @@ watch(method, () => {
   controls.value = [];
   dependent.value = "";
   groupVar.value = "";
+  tuzatildi.value = null;
   error.value = "";
 });
 
@@ -154,6 +254,20 @@ defineExpose({ run });
         <option value="">— tanlang —</option>
         <option v-for="v in depVars" :key="v.name" :value="v.name">{{ v.label || v.name }}</option>
       </select>
+
+      <!-- 🔴 MOS KELMAGANLAR YASHIRILMAYDI.
+           Tanlov maydonining O'ZIDA o'chirilgan `<option>` ga
+           izoh qo'shib bo'lmaydi (telefonda ko'rinmaydi), shuning
+           uchun sabab maydon OSTIDA. -->
+      <div v-if="depNomos.length" class="nomos" data-rol="dependent">
+        <span class="nomos-bosh">Ro'yxatda yo'q:</span>
+        <span v-for="n in depNomos" :key="n.ozgaruvchi.name" class="nomos-el">
+          <b>{{ n.nom }}</b> — {{ n.sabab }}.
+          <button v-if="n.target" class="tuzat" @click="turniTuzat(n)">
+            {{ n.tugma }}
+          </button>
+        </span>
+      </div>
     </template>
 
     <!-- Guruhlovchi (t-test, ANOVA) -->
@@ -163,17 +277,52 @@ defineExpose({ run });
         <option value="">— tanlang —</option>
         <option v-for="v in groupVars" :key="v.name" :value="v.name">{{ v.label || v.name }}</option>
       </select>
+
+      <!-- 🔴 MOS KELMAGANLAR YASHIRILMAYDI.
+           Tanlov maydonining O'ZIDA o'chirilgan `<option>` ga
+           izoh qo'shib bo'lmaydi (telefonda ko'rinmaydi), shuning
+           uchun sabab maydon OSTIDA. -->
+      <div v-if="groupNomos.length" class="nomos" data-rol="group">
+        <span class="nomos-bosh">Ro'yxatda yo'q:</span>
+        <span v-for="n in groupNomos" :key="n.ozgaruvchi.name" class="nomos-el">
+          <b>{{ n.nom }}</b> — {{ n.sabab }}.
+          <button v-if="n.target" class="tuzat" @click="turniTuzat(n)">
+            {{ n.tugma }}
+          </button>
+        </span>
+      </div>
     </template>
 
     <!-- O'zgaruvchi tanlash -->
     <template v-if="needsVars">
       <label class="lbl">{{ varsLabel }}</label>
       <div class="var-list">
-        <label v-for="v in variables" :key="v.name" class="var-chk">
-          <input type="checkbox" :value="v.name" v-model="selected" />
-          <span class="vn">{{ v.label || v.name }}</span>
-          <span class="vm">{{ olchovNomi(v.measure) }}</span>
-        </label>
+        <!-- Mos kelmagan KO'RINADI, lekin o'chirilgan: yashirilsa
+             foydalanuvchi o'zgaruvchisi qayoqqa ketganini
+             tushunmasdi. -->
+        <div
+          v-for="h in varsHolati"
+          :key="h.ozgaruvchi.name"
+          class="var-qator"
+          :data-nom="h.ozgaruvchi.name"
+        >
+          <label class="var-chk" :class="{ nomos: !h.mos }">
+            <input
+              type="checkbox"
+              :value="h.ozgaruvchi.name"
+              :disabled="!h.mos"
+              v-model="selected"
+            />
+            <span class="vn">{{ h.ozgaruvchi.label || h.ozgaruvchi.name }}</span>
+            <span class="vm">{{ olchovNomi(h.ozgaruvchi.measure) }}</span>
+          </label>
+          <span v-if="!h.mos" class="nomos-izoh">
+            {{ h.sabab }}.
+            <button v-if="h.target" class="tuzat" @click="turniTuzat(h)">
+              {{ h.tugma }}
+            </button>
+          </span>
+        </div>
       </div>
     </template>
 
@@ -181,12 +330,35 @@ defineExpose({ run });
     <template v-if="needsControls">
       <label class="lbl">Nazorat o'zgaruvchilari</label>
       <div class="var-list">
-        <label v-for="v in variables" :key="v.name" class="var-chk">
-          <input type="checkbox" :value="v.name" v-model="controls" />
-          <span class="vn">{{ v.label || v.name }}</span>
-        </label>
+        <div
+          v-for="h in controlsHolati"
+          :key="h.ozgaruvchi.name"
+          class="var-qator"
+          :data-nom="h.ozgaruvchi.name"
+        >
+          <label class="var-chk" :class="{ nomos: !h.mos }">
+            <input
+              type="checkbox"
+              :value="h.ozgaruvchi.name"
+              :disabled="!h.mos"
+              v-model="controls"
+            />
+            <span class="vn">{{ h.ozgaruvchi.label || h.ozgaruvchi.name }}</span>
+          </label>
+          <span v-if="!h.mos" class="nomos-izoh">
+            {{ h.sabab }}.
+            <button v-if="h.target" class="tuzat" @click="turniTuzat(h)">
+              {{ h.tugma }}
+            </button>
+          </span>
+        </div>
       </div>
     </template>
+
+    <p v-if="tuzatishXabari" class="tuzatildi">
+      {{ tuzatishXabari }}
+      <button class="link" @click="tuzatishniBekor">Bekor qilish</button>
+    </p>
 
     <p v-if="error" class="err">{{ error }}</p>
 
@@ -256,4 +428,59 @@ defineExpose({ run });
 }
 .run-btn { margin-top: 12px; }
 .err { color: var(--a5); font-size: .8rem; }
+
+/* ── mos kelmagan o'zgaruvchi ──
+   Sariq (--a4): xato emas, e'tibor talab qiladigan holat. */
+.nomos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .76rem;
+  color: var(--t3);
+  margin-top: 6px;
+}
+.nomos-bosh {
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: .66rem;
+}
+.nomos-el b { color: var(--t2); font-weight: 600; }
+
+.var-qator {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.var-chk.nomos {
+  opacity: .55;
+  cursor: default;
+}
+.nomos-izoh {
+  font-size: .72rem;
+  color: var(--t3);
+  padding-left: 26px;
+}
+.tuzat {
+  background: rgba(245, 158, 11, .12);
+  border: 1px solid rgba(245, 158, 11, .4);
+  color: var(--a4);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: .72rem;
+  margin-left: 4px;
+  cursor: pointer;
+}
+.tuzatildi {
+  font-size: .8rem;
+  color: var(--a3);
+  margin: 0;
+}
+.tuzatildi .link {
+  background: none;
+  border: none;
+  color: var(--a1);
+  font-size: .78rem;
+  margin-left: 6px;
+  cursor: pointer;
+}
 </style>
