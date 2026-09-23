@@ -3,11 +3,13 @@ import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 
 import ComputeModal from "./ComputeModal.vue";
+import TayyorlikRoyxati from "./TayyorlikRoyxati.vue";
 import RecodeModal from "./RecodeModal.vue";
 import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 import { zahiraIzohi, zahiralanganmi } from "../nomlar";
 import { OLCHOVLAR, olchovMisoli } from "../olchov";
 import { yangiNom } from "../sozlamalar";
+import { tekshir } from "../tayyorlik";
 
 const store = useStore();
 
@@ -48,6 +50,51 @@ function missingXulosa(v) {
     qismlar.push(`${past}–${yuqori}`);
   }
   return qismlar.length ? qismlar.join("; ") : "—";
+}
+
+/* ===============================
+   TAYYORLIK RO'YXATI (10-vazifa)
+================================ */
+
+const muammolar = computed(() => tekshir(variables.value, store.state.editor.rows));
+
+function ustunIndeksi(nom) {
+  return variables.value.findIndex(v => v.name === nom);
+}
+
+// Tuzatish `UPDATE_VARIABLE` orqali — avtosaqlash shu
+// komponentdagi watcher bilan o'zi ishlaydi (tahlil panelidan
+// farqli: u yerda VariablesTab unmount qilingan bo'ladi).
+function tuzat(m) {
+  const i = ustunIndeksi(m.variable);
+  if (i < 0) return;
+
+  if (m.tuzatish?.turi === "measure") {
+    store.commit("editor/UPDATE_VARIABLE", {
+      index: i, key: "measure", value: m.tuzatish.qiymat,
+    });
+    return;
+  }
+  if (m.tuzatish?.turi === "yorliq") {
+    // Tahrirlagichni ochamiz — yorliqni foydalanuvchi o'zi
+    // yozadi, biz taxmin qila olmaymiz.
+    if (!variables.value[i]._showValues) {
+      store.commit("editor/TOGGLE_VALUES_EDITOR", i);
+    }
+  }
+}
+
+function rad(m) {
+  // Qaysi kod rad etilishini `tayyorlik.js` hal qiladi va
+  // ro'yxat tugmani faqat o'shanda chizadi. Bu yerda ikkinchi
+  // tekshiruv siyosatni ikki joyga bo'lardi — `ogohlantirish_rad`
+  // esa faqat `kod_ehtimoli` qoidasida o'qiladi, ya'ni boshqa
+  // kodga yozilsa ham hech narsa qilmaydi.
+  const i = ustunIndeksi(m.variable);
+  if (i < 0) return;
+  store.commit("editor/UPDATE_VARIABLE", {
+    index: i, key: "ogohlantirish_rad", value: true,
+  });
 }
 
 /* ===============================
@@ -184,6 +231,8 @@ onBeforeUnmount(() => {
     <RecodeModal :open="recodeOchiq" @close="recodeOchiq = false" />
 
     <!-- Sxema avtosaqlanadi: xatoni ko'rsatadigan boshqa joy yo'q. -->
+    <TayyorlikRoyxati :muammolar="muammolar" @tuzat="tuzat" @rad="rad" />
+
     <div v-if="schemaError" class="schema-error">
       <strong>Sxema saqlanmadi.</strong> {{ schemaError }}
     </div>

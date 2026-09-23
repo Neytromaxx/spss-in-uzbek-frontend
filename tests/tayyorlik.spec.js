@@ -19,7 +19,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { KODLAR, tekshir } from "../src/tayyorlik";
+import { KODLAR, RAD_ETILADIGAN, radEtiladimi, tekshir } from "../src/tayyorlik";
 import { MAX_TOIFA } from "../src/tur-tuzatish";
 import { olchovNomi } from "../src/olchov";
 
@@ -281,5 +281,222 @@ describe("🔴 import qoidasi bilan bir xil javob", () => {
     // 3 xil qiymat, 3 ta to'lgan katak — takror yo'q.
     expect(kodlar(bitta({ measure: "scale" }, ["1", "", "2", "", "3"])))
       .toEqual([]);
+  });
+});
+
+
+// ══════════════════════ ro'yxat interfeysi ══════════════════════
+//
+// Sof funksiya to'g'ri ishlashi yetarli emas: ro'yxat ekranda
+// ko'rinmasa yoki tuzatish tugmasi sxemaga tegmasa, foydalanuvchi
+// uchun hech narsa o'zgarmaydi.
+
+import { mount } from "@vue/test-utils";
+import { vi } from "vitest";
+import { createStore } from "vuex";
+
+import TayyorlikRoyxati from "../src/components/TayyorlikRoyxati.vue";
+import VariablesTab from "../src/components/VariablesTab.vue";
+
+function royxat(muammolar) {
+  return mount(TayyorlikRoyxati, { props: { muammolar } });
+}
+
+describe("🔴 rad etish siyosati bitta joyda", () => {
+  it("faqat `kod_ehtimoli` rad etiladi", () => {
+    expect(RAD_ETILADIGAN).toEqual([KODLAR.KOD_EHTIMOLI]);
+    expect(radEtiladimi(KODLAR.KOD_EHTIMOLI)).toBe(true);
+  });
+
+  it.each([KODLAR.BOSH_USTUN, KODLAR.MATN_SCALE_DA, KODLAR.YORLIQ_YOQ])(
+    "«%s» rad etilmaydi", kod => {
+      // Bular ma'lumotning o'zi haqidagi FAKT — rad etish
+      // muammoni yashirish tugmasi bo'lardi.
+      expect(radEtiladimi(kod)).toBe(false);
+    },
+  );
+});
+
+describe("TayyorlikRoyxati", () => {
+  it("muammo yo'q bo'lsa umuman chizilmaydi", () => {
+    expect(royxat([]).find(".tayyorlik").exists()).toBe(false);
+  });
+
+  it("har bir muammo bitta qator", () => {
+    const w = royxat([
+      { variable: "a", kod: KODLAR.BOSH_USTUN, matn: "a bo'sh", tuzatish: null },
+      { variable: "b", kod: KODLAR.MATN_SCALE_DA, matn: "b matnli", tuzatish: null },
+    ]);
+    expect(w.findAll("li")).toHaveLength(2);
+    expect(w.text()).toContain("2 ta e");
+  });
+
+  it("tuzatish tugmasi faqat tuzatish bo'lsa", () => {
+    const w = royxat([
+      { variable: "a", kod: KODLAR.BOSH_USTUN, matn: "x", tuzatish: null },
+      { variable: "b", kod: KODLAR.YORLIQ_YOQ, matn: "y",
+        tuzatish: { turi: "yorliq", matn: "Yorliqlarni kiritish" } },
+    ]);
+    expect(w.findAll(".tuzat")).toHaveLength(1);
+    expect(w.find(".tuzat").text()).toBe("Yorliqlarni kiritish");
+  });
+
+  it("🔴 RAD ETISH FAQAT `kod_ehtimoli` UCHUN", () => {
+    // Qolgan uchtasi ma'lumotning o'zi haqidagi FAKT: bo'sh
+    // ustun bo'sh, matnli qiymat matnli. Ularni «rad etish»
+    // muammoni yashirish tugmasi bo'lardi.
+    const w = royxat([
+      { variable: "a", kod: KODLAR.KOD_EHTIMOLI, matn: "x",
+        tuzatish: { turi: "measure", qiymat: "ordinal", matn: "T" } },
+      { variable: "b", kod: KODLAR.MATN_SCALE_DA, matn: "y", tuzatish: null },
+      { variable: "c", kod: KODLAR.BOSH_USTUN, matn: "z", tuzatish: null },
+      { variable: "d", kod: KODLAR.YORLIQ_YOQ, matn: "w",
+        tuzatish: { turi: "yorliq", matn: "Y" } },
+    ]);
+    expect(w.findAll(".rad")).toHaveLength(1);
+    expect(w.find("[data-kod='kod_ehtimoli'] .rad").exists()).toBe(true);
+  });
+
+  it("tugmalar hodisa chiqaradi", async () => {
+    const m = { variable: "a", kod: KODLAR.KOD_EHTIMOLI, matn: "x",
+                tuzatish: { turi: "measure", qiymat: "ordinal", matn: "T" } };
+    const w = royxat([m]);
+    await w.find(".tuzat").trigger("click");
+    await w.find(".rad").trigger("click");
+    expect(w.emitted("tuzat")[0]).toEqual([expect.objectContaining({ variable: "a" })]);
+    expect(w.emitted("rad")[0]).toEqual([expect.objectContaining({ variable: "a" })]);
+  });
+
+  it("🔴 TO'SMASLIGI AYTILADI", () => {
+    const w = royxat([{ variable: "a", kod: KODLAR.BOSH_USTUN, matn: "x", tuzatish: null }]);
+    expect(w.find(".izoh").text()).toContain("to‘smaydi");
+  });
+});
+
+// ── VariablesTab bilan birga ──
+
+function tahrir(variables, rows) {
+  // 🔴 NUSXA OLINADI. `UPDATE_VARIABLE` obyektni JOYIDA
+  // o'zgartiradi, ya'ni tuzatish testi umumiy namunani buzib,
+  // keyingi testlar sababsiz yiqilardi.
+  variables = variables.map(v => ({ ...v }));
+  const commits = [];
+  const store = createStore({
+    modules: {
+      editor: {
+        namespaced: true,
+        state: () => ({ schema: { variables }, rows, schemaError: null,
+                        file: { id: "f1" }, analyzing: false }),
+        mutations: {
+          UPDATE_VARIABLE: (st, p) => {
+            commits.push(p);
+            st.schema.variables[p.index][p.key] = p.value;
+          },
+          TOGGLE_VALUES_EDITOR: (st, i) => {
+            commits.push({ index: i, key: "_showValues" });
+            st.schema.variables[i]._showValues = true;
+          },
+          SET_SAVED: () => {},
+        },
+        actions: { saveSchema: vi.fn() },
+      },
+      sozlamalar: { namespaced: true, state: () => ({ nomPrefiksi: "ozg" }) },
+    },
+  });
+  const w = mount(VariablesTab, {
+    global: { plugins: [store], stubs: { ComputeModal: true, RecodeModal: true } },
+  });
+  return { w, commits, store };
+}
+
+describe("VariablesTab — tayyorlik ro'yxati", () => {
+  const KOD_USTUN = [{ name: "guruh", measure: "scale", values: null }];
+  const KOD_QATOR = [{ guruh: "1" }, { guruh: "2" }, { guruh: "1" }];
+
+  it("muammo ro'yxati tepada ko'rinadi", () => {
+    const { w } = tahrir(KOD_USTUN, KOD_QATOR);
+    expect(w.find("[data-kod='kod_ehtimoli']").exists()).toBe(true);
+  });
+
+  it("🔴 TUZATISH SXEMANI O'ZGARTIRADI", () => {
+    const { w, commits } = tahrir(KOD_USTUN, KOD_QATOR);
+    w.find(".tuzat").trigger("click");
+    expect(commits[0]).toEqual({ index: 0, key: "measure", value: "ordinal" });
+  });
+
+  it("tuzatgandan keyin muammo yo'qoladi", async () => {
+    const { w } = tahrir(KOD_USTUN, KOD_QATOR);
+    await w.find(".tuzat").trigger("click");
+    expect(w.find("[data-kod='kod_ehtimoli']").exists()).toBe(false);
+  });
+
+  it("🔴 RAD ETISH SXEMADA SAQLANADI", () => {
+    // `localStorage` da emas: bu ma'lumot haqidagi qaror, ya'ni
+    // faylga tegishli — boshqa qurilmada ham amal qilsin.
+    const { w, commits } = tahrir(KOD_USTUN, KOD_QATOR);
+    w.find(".rad").trigger("click");
+    expect(commits[0]).toEqual({ index: 0, key: "ogohlantirish_rad", value: true });
+  });
+
+  it("rad etilgandan keyin ogohlantirish qaytmaydi", async () => {
+    const { w } = tahrir(KOD_USTUN, KOD_QATOR);
+    await w.find(".rad").trigger("click");
+    expect(w.find("[data-kod='kod_ehtimoli']").exists()).toBe(false);
+  });
+
+  it("yorliq tuzatishi tahrirlagichni ochadi", async () => {
+    const { w, commits } = tahrir(
+      [{ name: "jins", measure: "nominal", values: null }],
+      [{ jins: "1" }, { jins: "2" }, { jins: "1" }],
+    );
+    await w.find("[data-kod='yorliq_yoq'] .tuzat").trigger("click");
+    expect(commits[0]).toEqual({ index: 0, key: "_showValues" });
+  });
+
+  it("🔴 TUZATISH TO'G'RI USTUNGA TEGADI", () => {
+    // Indeks nom bo'yicha topiladi. Ro'yxatdagi tartib sxemadagi
+    // tartib bilan bir xil bo'lmasligi mumkin: birinchi
+    // o'zgaruvchi muammosiz bo'lsa, ro'yxatdagi birinchi element
+    // ikkinchi ustunga tegishli bo'ladi.
+    const { w, commits } = tahrir(
+      [
+        { name: "yosh", measure: "scale", values: null },
+        { name: "guruh", measure: "scale", values: null },
+      ],
+      [
+        { yosh: "18", guruh: "1" },
+        { yosh: "25", guruh: "2" },
+        { yosh: "31", guruh: "1" },
+        { yosh: "44", guruh: "2" },
+      ],
+    );
+    expect(w.findAll("li")).toHaveLength(1);
+    w.find(".tuzat").trigger("click");
+    expect(commits[0].index).toBe(1);
+  });
+
+  it("rad etish ham to'g'ri ustunga tegadi", () => {
+    const { w, commits } = tahrir(
+      [
+        { name: "yosh", measure: "scale", values: null },
+        { name: "guruh", measure: "scale", values: null },
+      ],
+      [
+        { yosh: "18", guruh: "1" },
+        { yosh: "25", guruh: "2" },
+        { yosh: "31", guruh: "1" },
+        { yosh: "44", guruh: "2" },
+      ],
+    );
+    w.find(".rad").trigger("click");
+    expect(commits[0]).toEqual({ index: 1, key: "ogohlantirish_rad", value: true });
+  });
+
+  it("muammosiz sxemada ro'yxat yo'q", () => {
+    const { w } = tahrir(
+      [{ name: "yosh", measure: "scale", values: null }],
+      [{ yosh: "18" }, { yosh: "25" }, { yosh: "31" }, { yosh: "44" }],
+    );
+    expect(w.find(".tayyorlik").exists()).toBe(false);
   });
 });

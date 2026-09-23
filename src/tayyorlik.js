@@ -38,6 +38,19 @@ export const KODLAR = {
   YORLIQ_YOQ: "yorliq_yoq",
 };
 
+// 🔴 QAYSI OGOHLANTIRISH RAD ETILADI — BITTA JOYDA.
+//
+// Faqat `kod_ehtimoli`: u TAXMIN, ya'ni foydalanuvchi «yo'q, bu
+// ball» deyishi mumkin. Qolgan uchtasi ma'lumotning o'zi
+// haqidagi FAKT (bo'sh ustun bo'sh, matnli qiymat matnli) —
+// ularni rad etish muammoni yashirish tugmasi bo'lardi.
+export const RAD_ETILADIGAN = [KODLAR.KOD_EHTIMOLI];
+
+/** Shu muammoni rad etish mumkinmi? */
+export function radEtiladimi(kod) {
+  return RAD_ETILADIGAN.includes(kod);
+}
+
 /** Ustunda nechta xil qiymat bor (ko'rsatish uchun). */
 function xilSoni(rows, nom) {
   const xillar = new Set();
