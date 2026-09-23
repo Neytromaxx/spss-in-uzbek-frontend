@@ -32,6 +32,17 @@ export default {
       commit("ADD_FILE", res.data);
       return res.data;
     },
+    // Namuna (o'quv) fayl — birinchi kirish uchun.
+    //
+    // 🔴 BACKENDDA YASALADI, CSV EMAS: namuna qiymat yorliqlari,
+    // yo'q qiymat kodlari va to'g'ri turlar bilan kelishi kerak.
+    // CSV bularni tashimaydi.
+    async namuna({ commit }) {
+      const res = await api.post("/files/namuna");
+      commit("ADD_FILE", res.data);
+      return res.data;
+    },
+
     async delete({ commit }, id) {
       await api.delete(`/files/${id}`);
       commit("REMOVE_FILE", id);

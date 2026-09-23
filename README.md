@@ -140,6 +140,86 @@ ilova yaroqsiz nom yasab qo'yardi.
 
 ---
 
+## Birinchi qadamlar (10-vazifa)
+
+### Qadamlar chizig'i
+
+```
+① Ma'lumot  →  ② O'zgaruvchilar  →  ③ Tahlil  →  ④ Natija
+```
+
+To'rtta ish ilgari teng ko'rinardi: ular orasida tartib ham,
+holat ham yo'q edi. Birinchi marta kirgan odam O'zgaruvchilar
+yorlig'ini o'tkazib yuborib to'g'ridan-to'g'ri Tahlilga o'tardi.
+
+Holatlar `src/qadamlar.js` sof modulida hisoblanadi (✓ / ⚠ / ○).
+**To'rt qadam, uch yorliq**: «Tahlil» va «Natija» bitta
+`results` yorlig'ida, lekin foydalanuvchi uchun bu ikki xil ish —
+«nimani hisoblayman?» va «nima chiqdi?».
+
+Yorliqlar tartibi chiziq bilan moslashtirilgan: ikki navigatsiya
+qatori qarama-qarshi tartibda turishi ogohlantirishdan ham yomon.
+
+### Tayyorlik tekshiruvi — `src/tayyorlik.js`
+
+09-vazifa turlarni faqat **yangi importda** to'g'ri aniqlaydi.
+Allaqachon yuklangan fayllarda guruh kodlari hamon `scale` bo'lib
+turibdi. Bu tekshiruv muammolarni tahlilga o'tishdan **oldin**
+ko'rsatadi.
+
+| Kod | Shart | Tuzatish |
+| --- | --- | --- |
+| `bosh_ustun` | barcha kataklar bo'sh | — |
+| `matn_scale_da` | `scale`, lekin matnli qiymat bor | — |
+| `kod_ehtimoli` | `scale` + `ordinalgaOxshaydimi` | Tartib / baho qilish |
+| `yorliq_yoq` | toifa, yorliqsiz, **kam kodli** | Yorliqlarni kiritish |
+
+🔴 **Hech narsani to'smaydi.** Qoidalar muqarrar ravishda ba'zan
+adashadi — to'sish odamni ishidan to'xtatib qo'yardi. «Keyingi
+qadam» tugmasi muammo bo'lsa ham ishlaydi, yonida faqat
+`2 ta muammo bor — baribir davom etish`.
+
+### Qoidalar nusxalanmaydi
+
+`kod_ehtimoli` sharti `tur-tuzatish.ordinalgaOxshaydimi` dan,
+u esa backenddagi `csv_import._olchov_turi` ning aynan o'zi.
+Ular ajralib ketsa, yangi importda `ordinal` bo'lgan ustun eski
+faylda «muammo» deb ko'rsatilardi — yoki aksincha.
+
+Moslik qo'lda ko'chirilmagan: 18 ta holat ikkala tomonda ham
+yugurtirilib solishtirilgan va
+`tests/tayyorlik.spec.js` dagi «import qoidasi bilan bir xil
+javob» bo'limida qulflangan.
+
+> **`yorliq_yoq` ga qo'shimcha shart.** Yorliq faqat haqiqatan
+> kam kodli ustunda so'raladi. Usiz 60 ta `id` qiymatiga yorliq
+> talab qilinardi — ma'nosiz ish, va namunaning o'zi «muammoli»
+> bo'lib chiqardi.
+
+### Rad etish
+
+`kod_ehtimoli` — TAXMIN, ya'ni foydalanuvchi «yo'q, bu ball»
+deyishi mumkin. Javob **sxemada** saqlanadi
+(`Variable.ogohlantirish_rad`), brauzerda emas: bu ma'lumot
+haqidagi qaror, ya'ni faylga tegishli.
+
+Qolgan uchtasi ma'lumotning o'zi haqidagi FAKT — ularni rad
+etish muammoni yashirish tugmasi bo'lardi. Siyosat bitta joyda:
+`tayyorlik.RAD_ETILADIGAN`.
+
+### Namuna (o'quv) ma'lumot
+
+Bo'sh ekranda ikkita karta: **namuna bilan sinab ko'rish** yoki
+**o'z faylini yuklash**. Namuna `POST /files/namuna` orqali
+backendda yasaladi — CSV qiymat yorliqlari, yo'q qiymat kodlari
+va turlarni tashimaydi.
+
+Ochilgan faylda bitta banner, bitta tavsiya (`?namuna=1`
+belgisi bo'yicha) — interaktiv sayohat emas. Yopilgani
+`localStorage` da eslab qolinadi.
+
+---
+
 ## Natijalar ro'yxati (08-vazifa)
 
 Tahlillar **teng huquqli ro'yxat** bo'lib to'planadi: `results: []`
