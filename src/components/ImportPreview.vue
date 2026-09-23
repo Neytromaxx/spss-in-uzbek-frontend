@@ -21,6 +21,7 @@
 // hech qachon bilmasdi.
 
 import { computed } from "vue";
+import { olchovNomi } from "../olchov";
 
 const props = defineProps({
   // Backend `import:parse` javobi
@@ -29,12 +30,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["confirm", "cancel", "sheet"]);
-
-const MEASURE_NOMI = {
-  scale: "Raqamli",
-  nominal: "Matn",
-  ordinal: "Tartibli",
-};
 
 const variables = computed(() => props.preview.variables || []);
 const sample = computed(() => props.preview.sample || []);
@@ -87,7 +82,7 @@ function katak(row, name) {
               <th v-for="v in variables" :key="v.name">
                 {{ v.label || v.name }}
                 <span class="ip-measure">{{
-                  MEASURE_NOMI[v.measure] || v.measure
+                  olchovNomi(v.measure)
                 }}</span>
               </th>
             </tr>

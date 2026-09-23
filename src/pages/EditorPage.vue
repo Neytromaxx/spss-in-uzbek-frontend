@@ -1,16 +1,62 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useStore } from "vuex";
+import { useRoute } from "vue-router";
+
+import { tekshir } from "../tayyorlik";
+import { BELGILAR, davomIzohi, keyingiQadam, qadamHolatlari } from "../qadamlar";
 
 import TopBar from "../components/TopBar.vue";
+import NamunaBanner from "../components/NamunaBanner.vue";
 import VariablesTab from "../components/VariablesTab.vue";
 import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
 
 const store = useStore();
+const route = useRoute();
+
+// Namuna ekani URL dan aniqlanadi. Fayl nomi bilan aniqlash
+// mo'rt bo'lardi — foydalanuvchi uni o'zgartirishi mumkin.
+const namunami = computed(() => route.query.namuna === "1");
 
 const varsTabRef = ref(null);
 const dataTabRef = ref(null);
+
+/* ===============================
+   QADAMLAR CHIZIG'I
+================================ */
+
+const ed = computed(() => store.state.editor);
+
+// Tayyorlik BIR MARTA hisoblanadi: uni ham chiziq, ham
+// «keyingi qadam» izohi, ham `VariablesTab` ishlatadi. Ikki
+// marta chaqirilsa, ikkita ro'yxat bir-biridan farq qilib
+// qolishi mumkin edi.
+const muammolar = computed(() =>
+  tekshir(ed.value.schema.variables, ed.value.rows),
+);
+
+const qadamlar = computed(() =>
+  qadamHolatlari({
+    rows: ed.value.rows,
+    variables: ed.value.schema.variables,
+    muammolar: muammolar.value,
+    natijalar: ed.value.results,
+  }),
+);
+
+const joriyQadam = computed(() => {
+  // Bitta yorliqda ikkita qadam bo'lsa (`results`), joriy deb
+  // OXIRGISI belgilanadi: foydalanuvchi natija ro'yxatini
+  // ko'rayotgan bo'lsa, u allaqachon tahlilni tanlagan.
+  const mos = qadamlar.value.filter(q => q.tab === ed.value.activeTab);
+  return mos[mos.length - 1]?.key || "";
+});
+
+const keyingi = computed(() => keyingiQadam(ed.value.activeTab));
+const izoh = computed(() =>
+  ed.value.activeTab === "variables" ? davomIzohi(muammolar.value) : "",
+);
 
 /* ===============================
    TAB SWITCH
@@ -37,22 +83,46 @@ async function openTab(tab) {
     <!-- TOP BAR -->
     <TopBar />
 
+    <NamunaBanner v-if="namunami" :file-id="store.state.editor.file?.id || ''" />
+
+    <!-- QADAMLAR CHIZIG'I -->
+    <!--
+      🔴 Chiziq yorliqlarning O'RNINI BOSMAYDI, ustiga qo'shiladi.
+      U yo'nalish va holat ko'rsatadi; yorliqlar esa o'z-o'zidan
+      navigatsiya bo'lib qoladi.
+    -->
+    <nav class="qadamlar" aria-label="Ish qadamlari">
+      <button
+        v-for="(q, i) in qadamlar"
+        :key="q.key"
+        class="qadam"
+        :class="[q.holat, { joriy: q.key === joriyQadam }]"
+        :data-qadam="q.key"
+        @click="openTab(q.tab)"
+      >
+        <span class="belgi">{{ BELGILAR[q.holat] }}</span>
+        <span class="raqam">{{ q.raqam }}</span>
+        <span class="qadam-nom">{{ q.nom }}</span>
+        <span v-if="i < qadamlar.length - 1" class="strelka" aria-hidden="true">→</span>
+      </button>
+    </nav>
+
     <!-- TABS -->
     <div class="tabs">
-      <div
-        class="tab"
-        :class="{ active: store.state.editor.activeTab === 'variables' }"
-        @click="openTab('variables')"
-      >
-        O‘zgaruvchilar
-      </div>
-
       <div
         class="tab"
         :class="{ active: store.state.editor.activeTab === 'data' }"
         @click="openTab('data')"
       >
         Ma’lumot
+      </div>
+
+      <div
+        class="tab"
+        :class="{ active: store.state.editor.activeTab === 'variables' }"
+        @click="openTab('variables')"
+      >
+        O‘zgaruvchilar
       </div>
 
       <div
@@ -116,6 +186,18 @@ async function openTab(tab) {
           Saqlash
         </button>
       </template>
+
+      <!-- KEYINGI QADAM -->
+      <!--
+        🔴 Tugma TO'SMAYDI: muammo bo'lsa ham ishlaydi, yonidagi
+        matn faqat nima o'tkazib yuborilayotganini aytadi.
+      -->
+      <template v-if="keyingi">
+        <span v-if="izoh" class="qadam-izoh">{{ izoh }}</span>
+        <button class="primary keyingi" @click="openTab(keyingi.tab)">
+          {{ keyingi.matn }}
+        </button>
+      </template>
     </div>
   </div>
 </template>
@@ -126,6 +208,63 @@ async function openTab(tab) {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+/* ── qadamlar chizig'i ── */
+.qadamlar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.qadamlar::-webkit-scrollbar { display: none; }
+
+.qadam {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font-size: .76rem;
+  color: var(--t3);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.qadam .raqam {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.qadam .belgi { font-size: .82rem; }
+.qadam .strelka { color: var(--bd2); margin-left: 4px; }
+
+.qadam.tayyor .belgi { color: var(--a3); }
+.qadam.etibor .belgi { color: var(--a4); }
+.qadam.hali_emas .belgi { color: var(--t3); }
+
+.qadam.joriy {
+  color: var(--t1);
+}
+.qadam.joriy .raqam { color: var(--a1); }
+
+.qadam-izoh {
+  font-size: .76rem;
+  color: var(--a4);
+  margin-right: auto;
+}
+.keyingi { white-space: nowrap; }
+
+/* Telefonda chiziq bir qatorga sig'masa — faqat raqamlar va
+   JORIY qadam nomi. Gorizontal aylantirish qoladi, lekin
+   odatiy holatda kerak bo'lmaydi. */
+@media (max-width: 560px) {
+  .qadam:not(.joriy) .qadam-nom { display: none; }
+  .qadam-izoh {
+    width: 100%;
+    margin: 0 0 6px;
+  }
 }
 
 .tabs {
