@@ -48,17 +48,16 @@ export function qiymatSoni(rows, nom) {
   return soni;
 }
 
-/** Ustun guruh kodiga o'xshaydimi?
+/** Ustunda kam xil, TAKRORLANUVCHI qiymat bormi?
  *
- * Ikkita shart: xil qiymatlar KAM va kamida bittasi TAKRORLANADI.
+ * Qiymat turi ahamiyatsiz: «Toshkent, Samarqand, Toshkent» ham
+ * toifa, «1, 2, 1» ham. Bu savol — «bu ustun guruhlash uchun
+ * yaramaydimi?» degani.
  *
- * ⚠️ Bu — backenddagi import qoidasining
- * (`csv_import._olchov_turi`) aynan o'zi. Takrorlanish sharti kichik tanlamani
- * himoya qiladi: 8 qatorli faylda 8 xil yosh (18–25) takrorsiz,
- * ya'ni u guruh kodi emas, o'lchov. Usiz `yosh` ustuniga «guruh
- * kodi qilish» taklif qilinardi.
+ * Takrorlanish sharti kichik tanlamani himoya qiladi: 8 qatorli
+ * faylda 8 xil yosh (18–25) takrorsiz, ya'ni u guruh emas.
  */
-export function guruhKodigaOxshaydimi(rows, nom) {
+export function kamToifali(rows, nom) {
   const xillar = new Set();
   let soni = 0;
   for (const r of rows || []) {
@@ -67,12 +66,52 @@ export function guruhKodigaOxshaydimi(rows, nom) {
     const s = String(q).trim();
     if (!s) continue;
     soni += 1;
-    xillar.add(s);
+    // Son bo'lsa son sifatida sanaymiz: `1` va `1.0` — bitta
+    // qiymat. Jadval muharriri ularni aralash yozishi odatiy.
+    const son = Number(s.replace(",", "."));
+    xillar.add(Number.isFinite(son) ? son : s);
   }
   if (xillar.size > MAX_TOIFA) return false;
   // Bo'sh ustun uchun `0 < 0` — yolg'on, ya'ni alohida tekshiruv
   // kerak emas. (Mutatsiya sinovi uni o'lik kod deb ko'rsatdi.)
   return xillar.size < soni; // kamida bittasi takrorlangan
+}
+
+/** Ustun `ordinal` ga o'xshaydimi?
+ *
+ * 🔴 BU — BACKENDDAGI IMPORT QOIDASINING AYNAN O'ZI
+ * (`csv_import._olchov_turi` ning `ordinal` shoxi):
+ *
+ *     barcha qiymat BUTUN son
+ *     xil qiymat <= MAX_TOIFA
+ *     kamida bittasi takrorlanadi
+ *
+ * `kamToifali` dan farqi — BUTUNLIK sharti. Ikkalasi bir xil deb
+ * o'ylash xato edi: `1.5, 2.5, 1.5, 2.5` kam toifali, lekin
+ * import uni `scale` deb belgilaydi. Ikki qoida ajralib ketsa,
+ * yangi importda `scale` bo'lgan ustun eski faylda «guruh kodi
+ * emasmi?» deb so'ralardi — va aksincha.
+ */
+export function ordinalgaOxshaydimi(rows, nom) {
+  if (!barchasiButunmi(rows, nom)) return false;
+  return kamToifali(rows, nom);
+}
+
+/** Ustundagi barcha yaroqli qiymatlar BUTUN sonmi?
+ *
+ * `3.0` — butun, `3.5` — butun emas. Parser `raqammi` bilan bir
+ * xil, ya'ni `3,0` ham butun deb topiladi.
+ */
+export function barchasiButunmi(rows, nom) {
+  for (const r of rows || []) {
+    const q = r?.[nom];
+    if (q === null || q === undefined) continue;
+    const s = String(q).trim().replace(",", ".");
+    if (!s) continue;
+    const son = Number(s);
+    if (!Number.isFinite(son) || !Number.isInteger(son)) return false;
+  }
+  return true;
 }
 
 /** Rol raqamli hisob-kitobga beriladimi?
@@ -154,7 +193,7 @@ export function tuzatish(tahlil, rol, ozgaruvchi, rows) {
     // `1 = erkak, 2 = ayol` ning o'rtachasi ma'nosiz. Ikkala
     // yo'nalish BITTA signalga bog'langan, ya'ni ustun yo
     // o'lchovga, yo guruh kodiga o'xshaydi — ikkalasiga emas.
-    if (malumotBor && guruhKodigaOxshaydimi(rows, ozgaruvchi?.name)) {
+    if (malumotBor && ordinalgaOxshaydimi(rows, ozgaruvchi?.name)) {
       return {
         nom,
         sabab: "kam xil, takrorlanuvchi qiymatlar — bu guruh kodi",
@@ -165,7 +204,7 @@ export function tuzatish(tahlil, rol, ozgaruvchi, rows) {
   }
 
   if (!raqamliRolmi(tahlil, rol) && target && malumotBor
-      && !guruhKodigaOxshaydimi(rows, ozgaruvchi?.name)) {
+      && !kamToifali(rows, ozgaruvchi?.name)) {
     return {
       nom,
       sabab: "qiymatlari takrorlanmaydi — guruh kodi emas",
