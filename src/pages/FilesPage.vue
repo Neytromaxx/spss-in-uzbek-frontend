@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
 import DatasetImportModal from "../components/DatasetImportModal.vue";
+import { xatoMatni } from "../api/errors";
 
 const store = useStore();
 const router = useRouter();
@@ -10,6 +11,8 @@ const router = useRouter();
 const creating = ref(false);
 const newTitle = ref("");
 const importVisible = ref(false);
+const namunaBand = ref(false);
+const namunaXato = ref("");
 
 const files = computed(() => store.state.files.list);
 const isAuth = computed(() => store.getters["auth/isAuthenticated"]);
@@ -22,10 +25,6 @@ const isLibrarian = computed(() => store.getters["auth/isLibrarian"]);
 function openLogin() {
   store.commit("auth/SET_LOGIN_VISIBLE", true);
 }
-function logout() {
-  store.dispatch("auth/logout");
-}
-
 onMounted(() => {
   store.dispatch("files/load");
 });
@@ -45,6 +44,28 @@ async function confirmCreate() {
 function cancelCreate() {
   creating.value = false;
   newTitle.value = "";
+}
+
+// 🔴 BIRINCHI KIRISH — BO'SH EKRAN EMAS.
+//
+// Faylsiz foydalanuvchi ilova nima qila olishini ko'ra olmaydi
+// va o'z ma'lumotini xavf ostiga qo'ymasdan sinab ko'ra
+// olmaydi. Namuna butun jarayonni bir bosishda ochadi.
+async function namunaOch() {
+  if (namunaBand.value) return;
+  namunaBand.value = true;
+  namunaXato.value = "";
+  try {
+    const file = await store.dispatch("files/namuna");
+    // `namuna=1` — tahrirlagichdagi banner uchun. Fayl nomining
+    // o'zi bilan aniqlash mo'rt bo'lardi: foydalanuvchi uni
+    // o'zgartirishi mumkin.
+    router.push(`/files/${file.id}?namuna=1`);
+  } catch (e) {
+    namunaXato.value = xatoMatni(e, "Namunani ochib bo'lmadi");
+  } finally {
+    namunaBand.value = false;
+  }
 }
 
 function openFile(id) {
@@ -67,10 +88,19 @@ function onImported(file) {
       </div>
       <div class="auth-box">
         <template v-if="isAuth">
-          <span class="who">{{ displayName }}</span>
-          <button class="ghost-sm" @click="logout">Chiqish</button>
+          <!-- Ism endi PROFILGA olib boradi. «Chiqish» o'sha
+               yerda: navda turganda uni tasodifan bosish oson
+               edi, tasdiq esa yo'q. -->
+          <button class="who" @click="router.push('/profil')">
+            {{ displayName }}
+          </button>
         </template>
-        <button v-else class="ghost-sm" @click="openLogin">Kirish</button>
+        <template v-else>
+          <button class="ghost-sm" @click="router.push('/profil')">
+            Sozlamalar
+          </button>
+          <button class="ghost-sm" @click="openLogin">Kirish</button>
+        </template>
       </div>
     </nav>
 
@@ -124,7 +154,29 @@ function onImported(file) {
 
       <div v-else class="empty">
         <div class="empty-ico">📂</div>
-        <p>Hali tadqiqot yo'q. Yangi tadqiqot yaratib boshlang.</p>
+        <p>Hali tadqiqot yo‘q. Ikki yo‘ldan birini tanlang:</p>
+
+        <div class="boshlash">
+          <button class="karta namuna" :disabled="namunaBand" @click="namunaOch">
+            <span class="karta-ico">🧪</span>
+            <span class="karta-nom">Namuna bilan sinab ko‘rish</span>
+            <span class="karta-izoh">
+              60 respondentli o‘quv ma’lumot — turlari, yorliqlari va
+              yo‘q qiymat kodi bilan tayyor.
+            </span>
+          </button>
+
+          <button class="karta" @click="startCreate">
+            <span class="karta-ico">📄</span>
+            <span class="karta-nom">O‘z faylimni yuklash</span>
+            <span class="karta-izoh">
+              Bo‘sh tadqiqot yarating va CSV/Excel faylingizni import
+              qiling.
+            </span>
+          </button>
+        </div>
+
+        <p v-if="namunaXato" class="namuna-xato">{{ namunaXato }}</p>
       </div>
     </div>
 
@@ -183,6 +235,15 @@ function onImported(file) {
 .who {
   font-size: .82rem;
   color: var(--t2);
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ghost-sm {
   background: transparent;
@@ -326,6 +387,47 @@ function onImported(file) {
   font-size: 3rem;
   opacity: .4;
   margin-bottom: 14px;
+}
+.boshlash {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 18px;
+}
+.karta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  width: 260px;
+  padding: 18px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r2);
+  background: var(--s1);
+  cursor: pointer;
+}
+.karta.namuna {
+  border-color: rgba(79, 110, 247, .38);
+  background: linear-gradient(135deg, rgba(79, 110, 247, .1), rgba(139, 92, 246, .06));
+}
+.karta:disabled { opacity: .6; }
+.karta-ico { font-size: 1.5rem; }
+.karta-nom {
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--t1);
+}
+.karta-izoh {
+  font-size: .8rem;
+  color: var(--t2);
+  line-height: 1.5;
+}
+.namuna-xato {
+  color: var(--a5);
+  font-size: .82rem;
+  margin-top: 12px;
 }
 .empty p {
   font-size: .9rem;

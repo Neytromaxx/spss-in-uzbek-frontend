@@ -3,9 +3,13 @@ import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { useStore } from "vuex";
 
 import ComputeModal from "./ComputeModal.vue";
+import TayyorlikRoyxati from "./TayyorlikRoyxati.vue";
 import RecodeModal from "./RecodeModal.vue";
 import { hosilaBelgisi, hosilaIzohi, hosilami } from "../derived";
 import { zahiraIzohi, zahiralanganmi } from "../nomlar";
+import { OLCHOVLAR, olchovMisoli } from "../olchov";
+import { yangiNom } from "../sozlamalar";
+import { tekshir } from "../tayyorlik";
 
 const store = useStore();
 
@@ -49,13 +53,64 @@ function missingXulosa(v) {
 }
 
 /* ===============================
+   TAYYORLIK RO'YXATI (10-vazifa)
+================================ */
+
+const muammolar = computed(() => tekshir(variables.value, store.state.editor.rows));
+
+function ustunIndeksi(nom) {
+  return variables.value.findIndex(v => v.name === nom);
+}
+
+// Tuzatish `UPDATE_VARIABLE` orqali — avtosaqlash shu
+// komponentdagi watcher bilan o'zi ishlaydi (tahlil panelidan
+// farqli: u yerda VariablesTab unmount qilingan bo'ladi).
+function tuzat(m) {
+  const i = ustunIndeksi(m.variable);
+  if (i < 0) return;
+
+  if (m.tuzatish?.turi === "measure") {
+    store.commit("editor/UPDATE_VARIABLE", {
+      index: i, key: "measure", value: m.tuzatish.qiymat,
+    });
+    return;
+  }
+  if (m.tuzatish?.turi === "yorliq") {
+    // Tahrirlagichni ochamiz — yorliqni foydalanuvchi o'zi
+    // yozadi, biz taxmin qila olmaymiz.
+    if (!variables.value[i]._showValues) {
+      store.commit("editor/TOGGLE_VALUES_EDITOR", i);
+    }
+  }
+}
+
+function rad(m) {
+  // Qaysi kod rad etilishini `tayyorlik.js` hal qiladi va
+  // ro'yxat tugmani faqat o'shanda chizadi. Bu yerda ikkinchi
+  // tekshiruv siyosatni ikki joyga bo'lardi — `ogohlantirish_rad`
+  // esa faqat `kod_ehtimoli` qoidasida o'qiladi, ya'ni boshqa
+  // kodga yozilsa ham hech narsa qilmaydi.
+  const i = ustunIndeksi(m.variable);
+  if (i < 0) return;
+  store.commit("editor/UPDATE_VARIABLE", {
+    index: i, key: "ogohlantirish_rad", value: true,
+  });
+}
+
+/* ===============================
    ADD VARIABLE (EXPOSED)
 ================================ */
 function addVariable() {
-  const index = variables.value.length + 1;
-
+  // 🔴 NOM BAND BO'LMAGANLARIDAN OLINADI, `uzunlik + 1` dan emas.
+  // Ikkita ustun qo'shib, birinchisini o'chirib, yana qo'shsangiz
+  // eskisi ikkinchi marta yasalardi.
+  //
+  // Prefiks sozlamadan keladi (Profil → Sozlamalar), sukut `ozg`.
   store.commit("editor/ADD_VARIABLE", {
-    name: `var_${index}`,
+    name: yangiNom(
+      variables.value.map(v => v.name),
+      store.state.sozlamalar.nomPrefiksi,
+    ),
     type: "numeric",
     label: "",
     measure: "scale",
@@ -176,6 +231,8 @@ onBeforeUnmount(() => {
     <RecodeModal :open="recodeOchiq" @close="recodeOchiq = false" />
 
     <!-- Sxema avtosaqlanadi: xatoni ko'rsatadigan boshqa joy yo'q. -->
+    <TayyorlikRoyxati :muammolar="muammolar" @tuzat="tuzat" @rad="rad" />
+
     <div v-if="schemaError" class="schema-error">
       <strong>Sxema saqlanmadi.</strong> {{ schemaError }}
     </div>
@@ -187,10 +244,10 @@ onBeforeUnmount(() => {
     <table v-else class="vars-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Label</th>
-          <th>Measure</th>
-          <th>Values</th>
+          <th>Nom</th>
+          <th>Yorliq</th>
+          <th>O‘lchov</th>
+          <th>Qiymatlar</th>
           <th>Yo‘q qiymatlar</th>
         </tr>
       </thead>
@@ -220,7 +277,7 @@ onBeforeUnmount(() => {
             <td>
               <input
                 :value="v.label"
-                placeholder="Label"
+                placeholder="Yorliq"
                 @input="updateVar(i, 'label', $event.target.value)"
               />
             </td>
@@ -230,10 +287,13 @@ onBeforeUnmount(() => {
                 :value="v.measure"
                 @change="updateVar(i, 'measure', $event.target.value)"
               >
-                <option value="nominal">Nominal</option>
-                <option value="ordinal">Ordinal</option>
-                <option value="scale">Scale</option>
+                <option v-for="o in OLCHOVLAR" :key="o.key" :value="o.key">
+                  {{ o.nom }} ({{ o.texnik }})
+                </option>
               </select>
+              <!-- Misol tanlovning OSTIDA: foydalanuvchi «Guruh
+                   kodi» nimaligini taxmin qilmasin, ko'rsin. -->
+              <div class="olchov-misoli">{{ olchovMisoli(v.measure) }}</div>
             </td>
 
             <td>
@@ -266,7 +326,7 @@ onBeforeUnmount(() => {
                   <span class="value-key">{{ key }}</span>
                   <input
                     :value="label"
-                    placeholder="Label"
+                    placeholder="Yorliq"
                     @input="updateValue(i, key, $event.target.value)"
                   />
                   <button
@@ -278,7 +338,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <button class="small" @click="addValue(i)">
-                  + Value qo‘shish
+                  + Qiymat qo‘shish
                 </button>
               </div>
             </td>
@@ -439,6 +499,11 @@ onBeforeUnmount(() => {
   margin-bottom: 8px;
 }
 
+.olchov-misoli {
+  font-size: .68rem;
+  color: var(--t3);
+  margin-top: 3px;
+}
 .value-key {
   width: 36px;
   font-family: 'JetBrains Mono', monospace;

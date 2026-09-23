@@ -49,6 +49,7 @@ Ishlab chiqarishda bu Railway'dagi backend manzili bo'ladi.
 | `errors.spec.js` | Backend xatosining uch xil shakli o'qiladigan matnga aylanishi |
 | `editor-store.spec.js` | `ADD_RESULT` natijadan hech qanday maydonni tashlab yubormasligi |
 | `results-list.spec.js` | Natijalar ro'yxati: dubl, eskirganlik, tanlash, eksport |
+| `sozlamalar.spec.js` | O'lchov nomlari, nom prefiksi tekshiruvi, profil sahifasi |
 | `analysis-panel.spec.js` | Panel backend kutgan ANIQ parametr nomlarini yuborishi |
 | `dataset-import.spec.js` | Manbadan fayl yaratish amallari va rol getteri |
 | `dataset-modal.spec.js` | Import oynasi: uchta manba, kampaniya tanlash, bo'sh kampaniya himoyasi |
@@ -69,6 +70,153 @@ qo'riqlaydi — kod ishlaydi, lekin noto'g'ri yoki kam natija beradi:
 > ⚠️ `analysis-panel.spec.js` dagi metodlar ro'yxati qo'lda yozilgan, chunki
 > u boshqa repodagi `engine.ANALYSES` ga tegishli. Backendga yangi metod
 > qo'shilsa, bu ro'yxatni ham yangilang.
+
+---
+
+## Interfeys tili va sozlamalar
+
+### O'lchov nomlari — `src/olchov.js`
+
+Bu nomlar ilgari **uchta joyda, uch xil** yozilgan edi:
+
+| Joy | scale | nominal | ordinal |
+| --- | --- | --- | --- |
+| `VariablesTab`, `ComputeModal` | `Scale` | `Nominal` | `Ordinal` |
+| `AnalysisPanel` | `raqamli` | `nominal` | `tartibli` |
+| `ImportPreview` | `Raqamli` | **`Matn`** | `Tartibli` |
+
+Uchinchisi nomuvofiq emas, **xato** ham edi: nominal shkala «matn»
+degani emas — u tartibsiz toifa (1 = erkak, 2 = ayol ham nominal).
+
+O'lchov darajasi bezak emas: `AnalysisPanel` metod ro'yxatini,
+`DataTab` esa katak muharririni aynan shunga qarab tanlaydi.
+Foydalanuvchi uni bir ekranda «Matn», ikkinchisida «Nominal» deb
+ko'rsa, ikki xil narsa deb o'ylaydi.
+
+Endi bitta manba: `OLCHOV_NOMI` = Miqdoriy / Tartibli / Nominal.
+`nominal` o'zbek statistika adabiyotidagi shaklda qoldirildi;
+`scale` uchun «Miqdoriy», chunki «Shkala» uchala darajaga ham
+tegishli so'z.
+
+### 🔴 Nom prefiksida apostrof bo'lmaydi
+
+Yangi o'zgaruvchi nomi (`ozg_1`, `ozg_2`) Profil → Sozlamalar
+bo'limida sozlanadi. Prefiks ASCII bo'lishi **shart**:
+
+Nom filtr va Compute ifodalarida token bo'lib tahlil qilinadi
+(backend `expr/tokenizer.py`: `[harf|_][harf|raqam|_]*`). Oddiy
+apostrof harf emas, ya'ni `o'zg_1 > 5` sharti «kutilmagan belgi»
+xatosini berardi. Tipografik `ʻ` (U+02BB) texnik jihatdan
+o'tadi, lekin klaviaturada oddiy `'` teriladi va nom topilmay
+qolardi — ya'ni xato ustun yasalganda emas, ancha keyin, filtr
+yozilganda chiqardi.
+
+Shuning uchun `prefiksXatosi()` apostrofni rad etadi va sababini
+aytadi. Zahiralangan so'z (`and`, `or`, `not`, `to`) ham prefiks
+bo'la olmaydi.
+
+Ko'rinadigan matnlar — sarlavhalar, yorliqlar, tugmalar — to'liq
+o'zbekcha; faqat **nomning o'zi** ASCII.
+
+### Nom to'qnashuvi
+
+`yangiNom(mavjudNomlar, prefiks)` **band bo'lmagan birinchi**
+raqamni oladi. Eski kod `uzunlik + 1` ishlatardi: ikkita ustun
+qo'shib, birinchisini o'chirsangiz, keyingisi mavjudi bilan
+to'qnashardi.
+
+### Sozlamalar qayerda saqlanadi
+
+`localStorage`, hisobda emas — ular anonim foydalanuvchida ham
+kerak (tahlil login talab qilmaydi):
+
+| Kalit | Nima |
+| --- | --- |
+| `mtt.sozlamalar.nomPrefiksi` | yangi o'zgaruvchi nomi prefiksi |
+| `mtt.results.order` | natijalar ro'yxati tartibi |
+
+Buzuq yoki eski qiymat o'qilganda sukutga qaytiladi — aks holda
+ilova yaroqsiz nom yasab qo'yardi.
+
+---
+
+## Birinchi qadamlar (10-vazifa)
+
+### Qadamlar chizig'i
+
+```
+① Ma'lumot  →  ② O'zgaruvchilar  →  ③ Tahlil  →  ④ Natija
+```
+
+To'rtta ish ilgari teng ko'rinardi: ular orasida tartib ham,
+holat ham yo'q edi. Birinchi marta kirgan odam O'zgaruvchilar
+yorlig'ini o'tkazib yuborib to'g'ridan-to'g'ri Tahlilga o'tardi.
+
+Holatlar `src/qadamlar.js` sof modulida hisoblanadi (✓ / ⚠ / ○).
+**To'rt qadam, uch yorliq**: «Tahlil» va «Natija» bitta
+`results` yorlig'ida, lekin foydalanuvchi uchun bu ikki xil ish —
+«nimani hisoblayman?» va «nima chiqdi?».
+
+Yorliqlar tartibi chiziq bilan moslashtirilgan: ikki navigatsiya
+qatori qarama-qarshi tartibda turishi ogohlantirishdan ham yomon.
+
+### Tayyorlik tekshiruvi — `src/tayyorlik.js`
+
+09-vazifa turlarni faqat **yangi importda** to'g'ri aniqlaydi.
+Allaqachon yuklangan fayllarda guruh kodlari hamon `scale` bo'lib
+turibdi. Bu tekshiruv muammolarni tahlilga o'tishdan **oldin**
+ko'rsatadi.
+
+| Kod | Shart | Tuzatish |
+| --- | --- | --- |
+| `bosh_ustun` | barcha kataklar bo'sh | — |
+| `matn_scale_da` | `scale`, lekin matnli qiymat bor | — |
+| `kod_ehtimoli` | `scale` + `ordinalgaOxshaydimi` | Tartib / baho qilish |
+| `yorliq_yoq` | toifa, yorliqsiz, **kam kodli** | Yorliqlarni kiritish |
+
+🔴 **Hech narsani to'smaydi.** Qoidalar muqarrar ravishda ba'zan
+adashadi — to'sish odamni ishidan to'xtatib qo'yardi. «Keyingi
+qadam» tugmasi muammo bo'lsa ham ishlaydi, yonida faqat
+`2 ta muammo bor — baribir davom etish`.
+
+### Qoidalar nusxalanmaydi
+
+`kod_ehtimoli` sharti `tur-tuzatish.ordinalgaOxshaydimi` dan,
+u esa backenddagi `csv_import._olchov_turi` ning aynan o'zi.
+Ular ajralib ketsa, yangi importda `ordinal` bo'lgan ustun eski
+faylda «muammo» deb ko'rsatilardi — yoki aksincha.
+
+Moslik qo'lda ko'chirilmagan: 18 ta holat ikkala tomonda ham
+yugurtirilib solishtirilgan va
+`tests/tayyorlik.spec.js` dagi «import qoidasi bilan bir xil
+javob» bo'limida qulflangan.
+
+> **`yorliq_yoq` ga qo'shimcha shart.** Yorliq faqat haqiqatan
+> kam kodli ustunda so'raladi. Usiz 60 ta `id` qiymatiga yorliq
+> talab qilinardi — ma'nosiz ish, va namunaning o'zi «muammoli»
+> bo'lib chiqardi.
+
+### Rad etish
+
+`kod_ehtimoli` — TAXMIN, ya'ni foydalanuvchi «yo'q, bu ball»
+deyishi mumkin. Javob **sxemada** saqlanadi
+(`Variable.ogohlantirish_rad`), brauzerda emas: bu ma'lumot
+haqidagi qaror, ya'ni faylga tegishli.
+
+Qolgan uchtasi ma'lumotning o'zi haqidagi FAKT — ularni rad
+etish muammoni yashirish tugmasi bo'lardi. Siyosat bitta joyda:
+`tayyorlik.RAD_ETILADIGAN`.
+
+### Namuna (o'quv) ma'lumot
+
+Bo'sh ekranda ikkita karta: **namuna bilan sinab ko'rish** yoki
+**o'z faylini yuklash**. Namuna `POST /files/namuna` orqali
+backendda yasaladi — CSV qiymat yorliqlari, yo'q qiymat kodlari
+va turlarni tashimaydi.
+
+Ochilgan faylda bitta banner, bitta tavsiya (`?namuna=1`
+belgisi bo'yicha) — interaktiv sayohat emas. Yopilgani
+`localStorage` da eslab qolinadi.
 
 ---
 

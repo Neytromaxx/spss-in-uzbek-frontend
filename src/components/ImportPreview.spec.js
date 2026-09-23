@@ -18,6 +18,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 
 import ImportPreview from "./ImportPreview.vue";
+import { olchovNomi } from "../olchov";
 
 function namuna(qoshimcha = {}) {
   return {
@@ -47,8 +48,12 @@ describe("ImportPreview", () => {
 
     expect(matn).toContain("Yosh");
     expect(matn).toContain("Shahar");
-    expect(matn).toContain("Raqamli");
-    expect(matn).toContain("Matn");
+    // 🔴 O'lchov nomlari `src/olchov.js` dan — bu yerda qo'lda
+    // yozilmasin. Ilgari bu ekran `nominal` ni «Matn» deb
+    // ko'rsatardi (xato: nominal shkala matn emas, tartibsiz
+    // TOIFA), boshqa ekranlar esa «nominal» derdi.
+    expect(matn).toContain(olchovNomi("scale"));
+    expect(matn).toContain(olchovNomi("nominal"));
     expect(matn).toContain("Toshkent");
   });
 

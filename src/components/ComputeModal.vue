@@ -12,6 +12,7 @@ import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
 
 import { xatoMatni } from "../api/errors";
+import { OLCHOVLAR } from "../olchov";
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(["close"]);
@@ -140,9 +141,9 @@ const SABAB_MATNI = {
         <label>
           O‘lchov
           <select v-model="olchov">
-            <option value="scale">Scale</option>
-            <option value="ordinal">Ordinal</option>
-            <option value="nominal">Nominal</option>
+            <option v-for="o in OLCHOVLAR" :key="o.key" :value="o.key">
+              {{ o.nom }} ({{ o.texnik }})
+            </option>
           </select>
         </label>
       </div>
