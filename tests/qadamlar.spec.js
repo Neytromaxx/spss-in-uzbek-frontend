@@ -12,6 +12,10 @@
 // to'xtatib qo'yardi.
 
 import { describe, expect, it, vi } from "vitest";
+
+// `EditorPage` namuna bannerini ko'rsatish uchun URL so'rovini
+// o'qiydi. Bu yerdagi testlar oddiy (namunasiz) faylga tegishli.
+vi.mock("vue-router", () => ({ useRoute: () => ({ query: {} }) }));
 import { mount } from "@vue/test-utils";
 import { createStore } from "vuex";
 

@@ -1,16 +1,23 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useStore } from "vuex";
+import { useRoute } from "vue-router";
 
 import { tekshir } from "../tayyorlik";
 import { BELGILAR, davomIzohi, keyingiQadam, qadamHolatlari } from "../qadamlar";
 
 import TopBar from "../components/TopBar.vue";
+import NamunaBanner from "../components/NamunaBanner.vue";
 import VariablesTab from "../components/VariablesTab.vue";
 import DataTab from "../components/DataTab.vue";
 import ResultsTab from "../components/ResultsTab.vue";
 
 const store = useStore();
+const route = useRoute();
+
+// Namuna ekani URL dan aniqlanadi. Fayl nomi bilan aniqlash
+// mo'rt bo'lardi — foydalanuvchi uni o'zgartirishi mumkin.
+const namunami = computed(() => route.query.namuna === "1");
 
 const varsTabRef = ref(null);
 const dataTabRef = ref(null);
@@ -75,6 +82,8 @@ async function openTab(tab) {
   <div class="editor">
     <!-- TOP BAR -->
     <TopBar />
+
+    <NamunaBanner v-if="namunami" :file-id="store.state.editor.file?.id || ''" />
 
     <!-- QADAMLAR CHIZIG'I -->
     <!--
