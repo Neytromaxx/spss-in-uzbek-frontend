@@ -19,7 +19,8 @@ import { createStore } from "vuex";
 import {
   MAX_TOIFA,
   barchasiRaqammi,
-  guruhKodigaOxshaydimi,
+  kamToifali,
+  ordinalgaOxshaydimi,
   raqamliRolmi,
   raqammi,
   tuzatildiXabari,
@@ -196,12 +197,46 @@ describe("🔴 ikki yo'nalish bitta signalga bog'langan", () => {
     // o'lchov. Takrorlanish sharti bo'lmasa, unga «guruh kodi
     // qilish» taklif qilinardi.
     const yosh = [18, 19, 20, 21, 22, 23, 24, 25].map(v => ({ x: String(v) }));
-    expect(guruhKodigaOxshaydimi(yosh, "x")).toBe(false);
+    expect(kamToifali(yosh, "x")).toBe(false);
+  });
+
+  it("🔴 KASRLI QIYMATLAR `ordinal` EMAS", () => {
+    // `1.5, 2.5, 1.5, 2.5` kam toifali, LEKIN import uni `scale`
+    // deb belgilaydi. Ikki qoida ajralib ketsa, yangi importda
+    // `scale` bo'lgan ustun eski faylda «guruh kodi emasmi?» deb
+    // so'ralardi.
+    const kasr = ["1.5", "2.5", "1.5", "2.5"].map(x => ({ x }));
+    expect(kamToifali(kasr, "x")).toBe(true);
+    expect(ordinalgaOxshaydimi(kasr, "x")).toBe(false);
+  });
+
+  it("nuqtali butun `ordinal` bo'la oladi", () => {
+    const butun = ["1.0", "2.0", "1.0", "2.0"].map(x => ({ x }));
+    expect(ordinalgaOxshaydimi(butun, "x")).toBe(true);
+  });
+
+  it("vergulli butun ham butun", () => {
+    const butun = ["1,0", "2,0", "1,0", "2,0"].map(x => ({ x }));
+    expect(ordinalgaOxshaydimi(butun, "x")).toBe(true);
+  });
+
+  it("🔴 `1` va `1.0` — BITTA qiymat", () => {
+    // Matn sifatida sanalsa takror yo'qolib, ustun toifa
+    // bo'lmay qolardi.
+    const aralash = ["1", "1.0", "2", "2.0"].map(x => ({ x }));
+    expect(kamToifali(aralash, "x")).toBe(true);
+    expect(ordinalgaOxshaydimi(aralash, "x")).toBe(true);
+  });
+
+  it("matnli ustun toifa bo'la oladi, `ordinal` emas", () => {
+    const matn = ["Toshkent", "Samarqand", "Toshkent"].map(x => ({ x }));
+    expect(kamToifali(matn, "x")).toBe(true);
+    expect(ordinalgaOxshaydimi(matn, "x")).toBe(false);
   });
 
   it("bo'sh ustun guruh kodi emas", () => {
-    expect(guruhKodigaOxshaydimi([], "x")).toBe(false);
-    expect(guruhKodigaOxshaydimi([{ x: "" }, { x: null }], "x")).toBe(false);
+    expect(kamToifali([], "x")).toBe(false);
+    expect(kamToifali([{ x: "" }, { x: null }], "x")).toBe(false);
   });
 
   it("🔴 CHEGARA — 10", () => {
@@ -218,12 +253,12 @@ describe("🔴 ikki yo'nalish bitta signalga bog'langan", () => {
     // guruh kodi bo'lishi kerak.
     const roppaRosa = Array.from({ length: 20 }, (_, i) => ({ x: String(i % MAX_TOIFA) }));
     expect(new Set(roppaRosa.map(r => r.x)).size).toBe(MAX_TOIFA);
-    expect(guruhKodigaOxshaydimi(roppaRosa, "x")).toBe(true);
+    expect(kamToifali(roppaRosa, "x")).toBe(true);
   });
 
   it("chegaradan oshgan xil qiymatlar", () => {
     const kop = Array.from({ length: 30 }, (_, i) => ({ x: String(i % (MAX_TOIFA + 1)) }));
-    expect(guruhKodigaOxshaydimi(kop, "x")).toBe(false);
+    expect(kamToifali(kop, "x")).toBe(false);
   });
 });
 
