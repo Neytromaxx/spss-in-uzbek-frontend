@@ -150,6 +150,24 @@ describe("yorliq_yoq", () => {
     const m = bitta({ measure: "nominal" }, ["1", "2", "1"]);
     expect(m[0].tuzatish.turi).toBe("yorliq");
   });
+
+  it("🔴 MATNLI USTUNGA YORLIQ SO'RALMAYDI — U O'ZI KO'RINADI", () => {
+    // So'rovnomadan uzatilgan fayl: `kanal`, `holat`, `jins`.
+    // «Natijada «1», «2» ko'rinadi» gapi bu ustunlarga yolg'on edi.
+    expect(bitta({ measure: "nominal" }, ["telegram", "web", "telegram"]))
+      .toEqual([]);
+    expect(bitta({ measure: "nominal" }, ["Ayol", "Erkak", "Ayol"]))
+      .toEqual([]);
+  });
+
+  it("aralash ustunda (son va matn) ham so'ralmaydi", () => {
+    expect(bitta({ measure: "nominal" }, ["1", "2", "Boshqa", "1"])).toEqual([]);
+  });
+
+  it("o'nlik vergulli kodlar ham son hisoblanadi", () => {
+    expect(kodlar(bitta({ measure: "ordinal" }, ["1,0", "2,0", "1,0"])))
+      .toEqual([KODLAR.YORLIQ_YOQ]);
+  });
 });
 
 // ══════════════════════ umumiy ══════════════════════

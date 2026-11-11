@@ -135,8 +135,15 @@ export function tekshir(variables, rows) {
     // Brifda bu shart yo'q edi, lekin usiz 60 ta `id` qiymatiga
     // yorliq talab qilinardi — ma'nosiz ish, va namunaning o'zi
     // «muammoli» bo'lib chiqardi.
+    //
+    // 🔴 VA FAQAT SONLI KODDA. Matnli qiymat («Ayol», «telegram»)
+    // natijada o'zi bilan ko'rinadi, ya'ni «Natijada «1», «2»
+    // ko'rinadi» degan gap unga YOLG'ON. So'rovnomadan uzatilgan
+    // faylda `kanal`, `holat`, `jins` kabi ustunlar shu sabab
+    // bekorga «muammo» bo'lib chiqardi.
     if (["nominal", "ordinal"].includes(v.measure)
-        && !yorliqBormi(v) && kamToifali(rows, nom)) {
+        && !yorliqBormi(v) && kamToifali(rows, nom)
+        && barchasiRaqammi(rows, nom)) {
       muammolar.push({
         variable: nom,
         kod: KODLAR.YORLIQ_YOQ,
